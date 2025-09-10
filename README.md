@@ -2,7 +2,6 @@
 
 
 # Build and MVP 
-
 ### Steps to MVP
 1. locate a small dataset to work with
 2. build a basic preprocessing pipeline
@@ -10,6 +9,7 @@
 4. build a training loop
 5. build tests
 6. build analysis code
+
 
 ### Develop new architectures
 Experiment 
@@ -20,8 +20,6 @@ Experiment
 ### Optimize for speed
 
 Keep envorinment up to date and clean
-
-
 
 
 Sleep-Stage Classifier (Rodent EEG) — Project Spec
@@ -128,3 +126,18 @@ Track all with MLflow; compare by macro F1 & κ on animal-held-out test.
 14) Reference implementation skeleton
 
 Repo layout
+
+
+
+
+Notes:
+
+Subsampling a 24 interval to balance the classes leads to biased sampling. 
+REM is the minority class and represents a small fraction of a 24 hour period. 
+Subsampling the majority class to match REM counts produces a sampling from across the 24 hour period. Very few awake and slow wave sleep bouts are immediately adjacent to each other
+Retaining all of the REM bouts means that there is a higher proportion of REM bouts that are adjecent to other REM bouts
+
+Counts of adjacent bouts 
+R    168
+S     15
+A      8
