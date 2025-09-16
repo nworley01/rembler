@@ -91,24 +91,28 @@ class SmallCNN(nn.Module):
     def __init__(self, in_channels: int, num_classes: int) -> None:
         super().__init__()
         self.features = nn.Sequential(
-            nn.Conv1d(in_channels, 32, kernel_size=7, padding=3),
+            nn.Conv1d(in_channels, 32, kernel_size=27, padding="same"),
             nn.BatchNorm1d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2),
-            nn.Conv1d(32, 64, kernel_size=5, padding=2),
-            nn.BatchNorm1d(64),
+            nn.Conv1d(32, 32, kernel_size=5, padding="same"),
+            nn.BatchNorm1d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(2),
-            nn.Conv1d(64, 96, kernel_size=3, padding=1),
+            nn.Conv1d(32, 32, kernel_size=5, padding="same"),
+            nn.BatchNorm1d(32),
             nn.ReLU(inplace=True),
-            nn.AdaptiveAvgPool1d(1),
+            nn.MaxPool1d(2),
+            nn.Conv1d(32, 32, kernel_size=3, padding="same"),
+            nn.ReLU(inplace=True),
+            nn.AdaptiveMaxPool1d(1),
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(96, 96),
+            nn.Linear(32, 32),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.2),
-            nn.Linear(96, num_classes),
+            nn.Linear(32, num_classes),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401
@@ -118,7 +122,8 @@ class SmallCNN(nn.Module):
 
 def build_model(in_channels: int, num_classes: int) -> nn.Module:
     try:
-        from src.models.cnn_bilstm import build_model as build_external  # type: ignore
+        from src.models.cnn_bilstm import \
+            build_model as build_external  # type: ignore
     except ImportError:
         build_external = None
     if callable(build_external):
