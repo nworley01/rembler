@@ -1,12 +1,15 @@
 import mne
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 int_to_stage = {0: "A",
                 1: "R",
                 2: "S",
                 3: "X",
                }
+
+stage_to_int = {v: k for k, v in int_to_stage.items()}
 
 def process_edf(edf_path: str, signals: list = ["EEG", "EMG"], bout_length: int = 10, bout_context: int = 5, causal=False,) -> pd.DataFrame:
     """
@@ -18,14 +21,13 @@ def process_edf(edf_path: str, signals: list = ["EEG", "EMG"], bout_length: int 
     # Extract sleep stages
     sleep_stages = create_sleep_stage_dataframe(edf_data)
     sleep_stages_subsample = subsample_sleep_dataframe(sleep_stages)
+    train_df, test_df = train_test_split(sleep_stages_subsample, stratify=sleep_stages_subsample.sleep, test_size=0.255, random_state=0)
     leading_buffer, trailing_buffer = determine_buffering(bout_length, bout_context, 500, causal)
-    sleep_stages_subsample = sleep_stages_subsample.assign(signal=sleep_stages_subsample.apply(lambda row: get_bout_signal(signals,
-                                                                                 row,
-                                                                                 leading_buffer=leading_buffer,
-                                                                                 trailing_buffer=trailing_buffer
-                                                                                 ), axis=1))
-
-    return sleep_stages_subsample
+    for df in [train_df, test_df]:
+        df.reset_index(drop=True, inplace=True)
+        df["signal"] = df.apply(lambda row: get_bout_signal(signals, row, leading_buffer=leading_buffer, trailing_buffer=trailing_buffer), axis=1)
+                                                                
+    return train_df, test_df
     
 
 def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
