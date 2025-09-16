@@ -44,6 +44,8 @@ def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
     .to_frame()
     .assign(start = lambda df: df.index * 5000)
     .assign(stop = lambda df: (df.index +1 )* 5000)
+    .assign(activity= extract_activity_signal(edf_data))
+    .assign(context= lambda df: extract_sleep_context(df))
     )
     return df
 
@@ -88,6 +90,16 @@ def extract_sleep_stages(raw_edf, bin_length_in_seconds=10, signal_name="Signal-
 
 def get_bout_signal(full_signals, row, leading_buffer=0, trailing_buffer=0):
     return full_signals[:, row.start-leading_buffer:row.stop+trailing_buffer]
+
+def extract_activity_signal(edf_data, samples_per_bout=5000):
+    activity_channel = edf_data.get_data(picks=["Activity"])[0]
+    return pd.Series(activity_channel).rolling(window=samples_per_bout, 
+                                               closed="both", 
+                                               center=True).max()[2500:][::samples_per_bout].reset_index(drop=True)
+
+def extract_sleep_context(df: pd.DataFrame) -> pd.Series:
+    sleep_string = "".join(df.sleep.values)
+    return df.index.map(lambda x: sleep_string[max(x-2, 0):x+3])
 
 def determine_buffering(bout_length, bout_context, sampling_rate, causal=False):
     if causal:

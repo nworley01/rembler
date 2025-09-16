@@ -26,23 +26,20 @@ Sleep-Stage Classifier (Rodent EEG) — Project Spec
 
 1) Goal & scope
 	•	Objective: Train a neural network to classify Wake / NREM (SWS) / REM from rodent EEG (+optional EMG/accel) in near-real time.
-	•	Primary outputs: per-epoch labels (e.g., 4-s epochs common in rodents) and a continuous hypnogram.
+	•	Primary outputs: per-epoch labels (e.g., 10-s epochs common in rodents) and a continuous hypnogram.
 	•	Secondary outputs: uncertainty per epoch, quality flags (artifact, missing signal).
 	•	Success criteria (Phase 1):
 	•	Macro F1 ≥ 0.82, per-class F1(REM) ≥ 0.75, Cohen’s κ ≥ 0.80 on held-out animals.
 	•	Latency ≤ 10 ms/epoch on a single GPU for batch inference; ≤ 50 ms on CPU.
 
 2) Data & labeling
-	•	Signals: 1–2 EEG channels (512 Hz target), EMG (1 channel, 512–1k Hz optional), optional accelerometer.
-	•	Epoching: 4-s non-overlapping windows (adjustable via config).
+	•	Signals: 1 EEG channel (500 Hz target), EMG (1 channel, 500 Hz optional)
+	•	Epoching: 50s centered around 10s non-overlapping windows (adjustable via config).
 	•	Labels: expert scored Wake / NREM / REM; allow unknown for ambiguous.
 	•	Splits: animal-wise split (no subject leakage). Suggested: 70/15/15 (train/val/test) with ≥ 5 animals in test.
 	•	Metadata: animal ID, strain, age, recording start UTC, lights-on/off times.
 
 3) Preprocessing
-	•	Filtering: EEG band-pass 0.5–100 Hz; notch at mains (50/60 Hz). EMG 10–300 Hz.
-	•	Re-referencing: common average or mastoid equivalent if available.
-	•	Resampling: to 512 Hz; z-score per-recording (fit on train only).
 	•	Artifact handling: flatline, saturations, motion bursts → flag epochs; either drop or feed artifact flag channel.
 	•	Synchronization: align EEG/EMG/accel timestamps; enforce constant epoch boundaries.
 
@@ -126,9 +123,6 @@ Track all with MLflow; compare by macro F1 & κ on animal-held-out test.
 14) Reference implementation skeleton
 
 Repo layout
-
-
-
 
 Notes:
 
