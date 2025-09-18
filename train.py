@@ -7,12 +7,15 @@ import logging
 import random
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict
 
 import numpy as np
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
+
+from src.dataio.datasets import SleepStageDataset
+from src.utils.hardware_utils import resolve_device
 
 
 @dataclass
@@ -30,111 +33,27 @@ class TrainConfig:
     seed: int = 42
     log_interval: int = 25
     checkpoint_name: str = "best.pt"
-
-    def resolve_device(self) -> torch.device:
-        if self.device == "auto":
-            if torch.cuda.is_available():
-                return torch.device("cuda")
-            if torch.backends.mps.is_available():  # type: ignore[attr-defined]
-                return torch.device("mps")
-            return torch.device("cpu")
-        return torch.device(self.device)
+    model_type: str = "small_cnn"  # "small_cnn", "cnn_bilstm", "implicit_cnn"
 
     @property
     def checkpoint_path(self) -> Path:
         return self.output_dir / self.checkpoint_name
 
-
-class SleepStageDataset(Dataset):
-    """Dataset wrapper expecting an .npz with 'signals' and 'labels' arrays."""
-
-    def __init__(self, npz_path: Path, dtype: torch.dtype = torch.float32) -> None:
-        self.path = npz_path
-        with np.load(npz_path) as arrays:
-            if "signals" not in arrays or "labels" not in arrays:
-                raise KeyError(f"{npz_path} must contain 'signals' and 'labels' entries")
-            signals = arrays["signals"]
-            labels = arrays["labels"]
-        if signals.ndim != 3:
-            raise ValueError(f"Expected signals shape (N, C, T), got {signals.shape}")
-        if labels.ndim != 1:
-            raise ValueError(f"Expected labels shape (N,), got {labels.shape}")
-        if signals.shape[0] != labels.shape[0]:
-            raise ValueError("Signals and labels must have the same number of samples")
-        self.signals = torch.as_tensor(signals, dtype=dtype)
-        self.labels = torch.as_tensor(labels, dtype=torch.long)
-        self._num_classes = int(self.labels.max().item()) + 1
-        self._num_channels = int(self.signals.shape[1])
-
-    def __len__(self) -> int:
-        return self.labels.shape[0]
-
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.signals[index], self.labels[index]
-
-    @property
-    def num_classes(self) -> int:
-        return self._num_classes
-
-    @property
-    def num_channels(self) -> int:
-        return self._num_channels
-
-    def class_frequencies(self) -> torch.Tensor:
-        counts = torch.bincount(self.labels, minlength=self._num_classes)
-        return counts.to(torch.float32) / counts.sum()
-
-
-class SmallCNN(nn.Module):
-    """Fallback model for quick experimentation."""
-
-    def __init__(self, in_channels: int, num_classes: int) -> None:
-        super().__init__()
-        self.features = nn.Sequential(
-            nn.Conv1d(in_channels, 32, kernel_size=27, padding="same"),
-            nn.BatchNorm1d(32),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(2),
-            nn.Conv1d(32, 32, kernel_size=5, padding="same"),
-            nn.BatchNorm1d(32),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(2),
-            nn.Conv1d(32, 32, kernel_size=5, padding="same"),
-            nn.BatchNorm1d(32),
-            nn.ReLU(inplace=True),
-            nn.MaxPool1d(2),
-            nn.Conv1d(32, 32, kernel_size=3, padding="same"),
-            nn.ReLU(inplace=True),
-            nn.AdaptiveMaxPool1d(1),
-        )
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(32, 32),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.2),
-            nn.Linear(32, num_classes),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # noqa: D401
-        x = self.features(x)
-        return self.classifier(x)
-
-
-def build_model(in_channels: int, num_classes: int) -> nn.Module:
-    try:
-        from src.models.cnn_bilstm import \
-            build_model as build_external  # type: ignore
-    except ImportError:
-        build_external = None
-    if callable(build_external):
-        return build_external(in_channels=in_channels, num_classes=num_classes)
-    try:
-        from src.models.cnn_bilstm import CNNBiLSTM  # type: ignore
-
-        return CNNBiLSTM(in_channels=in_channels, num_classes=num_classes)
-    except (ImportError, AttributeError):
-        logging.warning("Falling back to SmallCNN; implement src/models/cnn_bilstm.py for custom model.")
+def build_model(model_type: str, in_channels: int, num_classes: int) -> nn.Module:
+    if model_type == "small_cnn":
+        from src.models.basic_cnn import SmallCNN
         return SmallCNN(in_channels=in_channels, num_classes=num_classes)
+    elif model_type == "simple_dense":
+        from src.models.basic_dense import SimpleDense
+        return SimpleDense(in_channels=in_channels, num_classes=num_classes, sequence_length=25000)
+    elif model_type == "cnn_bilstm":
+        from src.models.cnn_bilstm import CNNBiLSTM
+        return CNNBiLSTM(in_channels=in_channels, num_classes=num_classes)
+    elif model_type == "implicit_cnn":
+        from src.models.implicit_cnn import ImplicitFrequencyCNN
+        return ImplicitFrequencyCNN(in_channels=in_channels, out_channels=num_classes)
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
 
 
 def set_seed(seed: int) -> None:
@@ -197,7 +116,7 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion: nn.Module, dev
     correct = 0
     total = 0
     with torch.no_grad():
-        for signals, labels in dataloader:
+        for step, (signals, labels) in enumerate(dataloader):
             signals = signals.to(device)
             labels = labels.to(device)
             logits = model(signals)
@@ -242,6 +161,7 @@ def parse_args() -> TrainConfig:
     parser.add_argument("--seed", type=int, default=TrainConfig.seed)
     parser.add_argument("--log-interval", type=int, default=TrainConfig.log_interval)
     parser.add_argument("--checkpoint-name", type=str, default=TrainConfig.checkpoint_name)
+    parser.add_argument("--model-type", type=str, default=TrainConfig.model_type, choices=["small_cnn", "cnn_bilstm", "implicit_cnn", "simple_dense"])
     args = parser.parse_args()
     return TrainConfig(
         train_data=args.train_data,
@@ -257,6 +177,7 @@ def parse_args() -> TrainConfig:
         seed=args.seed,
         log_interval=args.log_interval,
         checkpoint_name=args.checkpoint_name,
+        model_type=args.model_type,
     )
 
 
@@ -267,12 +188,12 @@ def main() -> None:
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     set_seed(config.seed)
-    device = config.resolve_device()
+    device = resolve_device(config.device)
     logging.info("Using device: %s", device)
 
     train_ds = SleepStageDataset(config.train_data)
     val_ds = SleepStageDataset(config.val_data)
-    model = build_model(train_ds.num_channels, train_ds.num_classes).to(device)
+    model = build_model(config.model_type, train_ds.num_channels, train_ds.num_classes).to(device)
 
     class_weights = compute_class_weights(train_ds).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
