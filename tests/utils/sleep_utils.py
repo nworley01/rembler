@@ -46,10 +46,6 @@ RECOMMENDATIONS & CODE QUALITY NOTES
    - Consider exposing EDF sampling rate and bin length as parameters to enable more flexible tests.
 """
 
-import builtins
-import math
-import sys
-import types
 
 import numpy as np
 import pandas as pd
