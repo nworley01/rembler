@@ -14,8 +14,10 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from src.dataio.datasets import SleepStageDataset
-from src.utils.hardware_utils import resolve_device
+from rembler.analysis.metrics.custom_metrics import PerClassMetric
+from rembler.dataio.datasets import SleepStageDataset
+from rembler.utils.hardware_utils import resolve_device
+from rembler.utils.sleep_utils import int_to_stage
 
 
 @dataclass
@@ -115,6 +117,7 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion: nn.Module, dev
     total_loss = 0.0
     correct = 0
     total = 0
+    per_class_metric = PerClassMetric(num_classes=dataloader.dataset.num_classes)
     with torch.no_grad():
         for step, (signals, labels) in enumerate(dataloader):
             signals = signals.to(device)
@@ -126,10 +129,16 @@ def evaluate(model: nn.Module, dataloader: DataLoader, criterion: nn.Module, dev
             preds = logits.argmax(dim=1)
             correct += (preds == labels).sum().item()
             total += batch_size
-    return {
+            per_class_metric.update(preds, labels)
+    metrics_dict = {
         "loss": total_loss / max(total, 1),
         "accuracy": correct / max(total, 1),
     }
+    for metric, value in enumerate(per_class_metric.compute()):
+        if isinstance(value, torch.Tensor):
+            metrics_dict[f"{int_to_stage.get(metric, metric)}_accuracy"] = value.item()
+
+    return metrics_dict
 
 
 def save_checkpoint(path: Path, model: nn.Module, metadata: Dict[str, float]) -> None:
