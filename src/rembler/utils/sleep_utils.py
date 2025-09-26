@@ -16,15 +16,21 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-int_to_stage = {0: "A",
-                1: "R",
-                2: "S",
-                3: "X",
-               }
+int_to_stage = {
+    0: "A",
+    1: "R",
+    2: "S",
+    3: "X",
+}
 
 stage_to_int = {v: k for k, v in int_to_stage.items()}
 
-def verify_edf(edf_file: str | Path, duration: int = 24, sfreq: int = 500) -> bool:
+
+def verify_edf(
+    edf_file: str | Path,
+    duration: int = 24,
+    sfreq: int = 500,
+) -> bool:
     """Validate that an EDF recording matches basic assumptions.
 
     Parameters
@@ -58,12 +64,15 @@ def verify_edf(edf_file: str | Path, duration: int = 24, sfreq: int = 500) -> bo
         print(f"Missing required channels in {edf_file}")
         return False
     if edf_file.info["sfreq"] != sfreq:
-        print(f"EDF file {edf_file} has sampling frequency {edf_file.info['sfreq']}, expected {sfreq}")
+        print(
+            f"EDF file {edf_file} has sampling frequency {edf_file.info['sfreq']}, expected {sfreq}"
+        )
         return False
     if edf_file.n_times < duration * 3600 * edf_file.info["sfreq"]:
         print(f"EDF file {edf_file} is shorter than {duration} hours")
         return False
     return True
+
 
 def extract_sleep_stages_from_edf(
     edf_path: str,
@@ -100,11 +109,12 @@ def extract_sleep_stages_from_edf(
         DataFrame with ``sleep`` labels and start/stop indices for every bout.
     """
     # Load the EDF file
-    edf_data = mne.io.read_raw_edf(edf_path, preload=True, verbose='WARNING')
+    edf_data = mne.io.read_raw_edf(edf_path, preload=True, verbose="WARNING")
     # Verify the EDF file
     assert verify_edf(edf_data), f"EDF file {edf_path} failed verification"
     # Extract sleep stages
     return create_sleep_stage_dataframe(edf_data)
+
 
 def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -> str:
     """Persist a sleep-stage table as CSV and return the destination path."""
@@ -128,10 +138,12 @@ def subsample_datatable(file_path: str | Path, new_name: str):
     train_df, test_df = train_test_split(
         sleep_stages_subsample,
         stratify=sleep_stages_subsample.sleep,
-        test_size=0.255,
+        train_size=256,
         random_state=0,
     )
-    leading_buffer, trailing_buffer = determine_buffering(bout_length, bout_context, 500, causal)
+    leading_buffer, trailing_buffer = determine_buffering(
+        bout_length, bout_context, 500, causal
+    )
     for df in [train_df, test_df]:
         df.reset_index(drop=True, inplace=True)
         df["signal"] = df.apply(
@@ -145,7 +157,7 @@ def subsample_datatable(file_path: str | Path, new_name: str):
         )
 
     return train_df, test_df
-    
+
 
 def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
     """Create a per-bout summary table from an EDF recording.
@@ -154,29 +166,39 @@ def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
     activity metadata and optional context strings for quick inspection.
     """
     sleep_stages = extract_sleep_stages(edf_data)
-    df = (pd.Series(sleep_stages)
-    .map(int_to_stage)
-    .rename("sleep")
-    .to_frame()
-    .assign(start = lambda df: df.index * 5000)
-    .assign(stop = lambda df: (df.index +1 )* 5000)
-    .assign(activity= extract_activity_signal(edf_data))
-    .assign(context= lambda df: extract_sleep_context(df))
+    df = (
+        pd.Series(sleep_stages)
+        .map(int_to_stage)
+        .rename("sleep")
+        .to_frame()
+        .assign(start=lambda df: df.index * 5000)
+        .assign(stop=lambda df: (df.index + 1) * 5000)
+        .assign(activity=extract_activity_signal(edf_data))
+        .assign(context=lambda df: extract_sleep_context(df))
     )
     return df
 
-def subsample_sleep_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+
+def subsample_sleep_dataframe(
+    df: pd.DataFrame,
+    require_full_context: bool = True,
+) -> pd.DataFrame:
     """Return a balanced sample of sleep stages by matching REM frequency."""
+    df = df.loc[df.context.apply(lambda c: len(c) == 5)] if require_full_context else df
     r_bouts_count = df.sleep.value_counts()["R"]
-    return (df[df.sleep != "X"]
-            .groupby("sleep")
-            .sample(n=r_bouts_count, random_state=0)
-            .sort_index()
-            )
+    return (
+        df[df.sleep != "X"]
+        .groupby("sleep")
+        .sample(n=r_bouts_count, random_state=0)
+        .sort_index()
+        .reset_index(drop=True)
+    )
+
 
 def decode_sleep_signal(arr: np.ndarray) -> np.ndarray:
     """Convert the scorer's analog signal into coarse integer stages."""
     return np.digitize(arr, bins=[1.5, 2.5, 3.5])
+
 
 def extract_sleep_stages(
     raw_edf,
@@ -187,12 +209,15 @@ def extract_sleep_stages(
     bin_length_in_samples = bin_length_in_seconds * raw_edf.info["sfreq"]
     start = int(bin_length_in_samples / 2)
     step = bin_length_in_samples
-    bout_center_points = np.arange( start, raw_edf.n_times, step, dtype=int)
+    bout_center_points = np.arange(start, raw_edf.n_times, step, dtype=int)
     sleep_signal_bin_center_points = raw_edf[signal_name][0][0, bout_center_points]
     return decode_sleep_signal(sleep_signal_bin_center_points)
 
+
 def get_bout_signal(full_signals, row, leading_buffer=0, trailing_buffer=0):
     """Slice the multichannel signal matrix to the window associated with a row."""
+    return full_signals[:, row.start - leading_buffer : row.stop + trailing_buffer]
+
 
 def extract_activity_signal(edf_data, samples_per_bout=5000):
     """Compute a per-bout activity proxy using the rolling max over the channel."""
@@ -204,10 +229,12 @@ def extract_activity_signal(edf_data, samples_per_bout=5000):
         .reset_index(drop=True)
     )
 
+
 def extract_sleep_context(df: pd.DataFrame) -> pd.Series:
     """Encode the local neighbourhood of each bout as a short context string."""
     sleep_string = "".join(df.sleep.values)
     return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3])
+
 
 def determine_buffering(bout_length, bout_context, sampling_rate, causal=False):
     """Derive leading/trailing buffer sizes for contextual signal windows."""
@@ -217,6 +244,10 @@ def determine_buffering(bout_length, bout_context, sampling_rate, causal=False):
     else:
         leading_buffer = (bout_context - 1) / 2 * bout_length * sampling_rate
         trailing_buffer = leading_buffer
-    assert leading_buffer % 1 == 0, "Leading buffer must be an integer number of samples"
-    assert trailing_buffer % 1 == 0, "Trailing buffer must be an integer number of samples"
+    assert leading_buffer % 1 == 0, (
+        "Leading buffer must be an integer number of samples"
+    )
+    assert trailing_buffer % 1 == 0, (
+        "Trailing buffer must be an integer number of samples"
+    )
     return int(leading_buffer), int(trailing_buffer)
