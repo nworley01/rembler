@@ -1,4 +1,5 @@
 """PyTorch training loop for sleep stage classification."""
+
 from __future__ import annotations
 
 import argparse
@@ -41,18 +42,25 @@ class TrainConfig:
     def checkpoint_path(self) -> Path:
         return self.output_dir / self.checkpoint_name
 
+
 def build_model(model_type: str, in_channels: int, num_classes: int) -> nn.Module:
     if model_type == "small_cnn":
-        from src.models.basic_cnn import SmallCNN
+        from rembler.models.basic_cnn import SmallCNN
+
         return SmallCNN(in_channels=in_channels, num_classes=num_classes)
     elif model_type == "simple_dense":
-        from src.models.basic_dense import SimpleDense
-        return SimpleDense(in_channels=in_channels, num_classes=num_classes, sequence_length=25000)
+        from rembler.models.basic_dense import SimpleDense
+
+        return SimpleDense(
+            in_channels=in_channels, num_classes=num_classes, sequence_length=25000
+        )
     elif model_type == "cnn_bilstm":
-        from src.models.cnn_bilstm import CNNBiLSTM
+        from rembler.models.cnn_bilstm import CNNBiLSTM
+
         return CNNBiLSTM(in_channels=in_channels, num_classes=num_classes)
     elif model_type == "implicit_cnn":
-        from src.models.implicit_cnn import ImplicitFrequencyCNN
+        from rembler.models.implicit_cnn import ImplicitFrequencyCNN
+
         return ImplicitFrequencyCNN(in_channels=in_channels, out_channels=num_classes)
     else:
         raise ValueError(f"Unknown model type: {model_type}")
@@ -112,7 +120,9 @@ def train_one_epoch(
     }
 
 
-def evaluate(model: nn.Module, dataloader: DataLoader, criterion: nn.Module, device: torch.device) -> Dict[str, float]:
+def evaluate(
+    model: nn.Module, dataloader: DataLoader, criterion: nn.Module, device: torch.device
+) -> Dict[str, float]:
     model.eval()
     total_loss = 0.0
     correct = 0
@@ -157,20 +167,43 @@ def log_metrics(epoch: int, phase: str, metrics: Dict[str, float]) -> None:
 
 def parse_args() -> TrainConfig:
     parser = argparse.ArgumentParser(description="Train a sleep stage classifier")
-    parser.add_argument("--train-data", type=Path, required=True, help="Path to training npz file")
-    parser.add_argument("--val-data", type=Path, required=True, help="Path to validation npz file")
-    parser.add_argument("--output-dir", type=Path, default=Path("artifacts"), help="Directory to write checkpoints and logs")
+    parser.add_argument(
+        "--train-data", type=Path, required=True, help="Path to training npz file"
+    )
+    parser.add_argument(
+        "--val-data", type=Path, required=True, help="Path to validation npz file"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("artifacts"),
+        help="Directory to write checkpoints and logs",
+    )
     parser.add_argument("--epochs", type=int, default=TrainConfig.epochs)
     parser.add_argument("--batch-size", type=int, default=TrainConfig.batch_size)
-    parser.add_argument("--learning-rate", type=float, default=TrainConfig.learning_rate)
+    parser.add_argument(
+        "--learning-rate", type=float, default=TrainConfig.learning_rate
+    )
     parser.add_argument("--weight-decay", type=float, default=TrainConfig.weight_decay)
     parser.add_argument("--grad-clip", type=float, default=TrainConfig.grad_clip)
     parser.add_argument("--num-workers", type=int, default=TrainConfig.num_workers)
-    parser.add_argument("--device", type=str, default=TrainConfig.device, help="'auto', 'cpu', 'cuda', ...")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=TrainConfig.device,
+        help="'auto', 'cpu', 'cuda', ...",
+    )
     parser.add_argument("--seed", type=int, default=TrainConfig.seed)
     parser.add_argument("--log-interval", type=int, default=TrainConfig.log_interval)
-    parser.add_argument("--checkpoint-name", type=str, default=TrainConfig.checkpoint_name)
-    parser.add_argument("--model-type", type=str, default=TrainConfig.model_type, choices=["small_cnn", "cnn_bilstm", "implicit_cnn", "simple_dense"])
+    parser.add_argument(
+        "--checkpoint-name", type=str, default=TrainConfig.checkpoint_name
+    )
+    parser.add_argument(
+        "--model-type",
+        type=str,
+        default=TrainConfig.model_type,
+        choices=["small_cnn", "cnn_bilstm", "implicit_cnn", "simple_dense"],
+    )
     args = parser.parse_args()
     return TrainConfig(
         train_data=args.train_data,
@@ -192,8 +225,12 @@ def parse_args() -> TrainConfig:
 
 def main() -> None:
     config = parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    logging.info("Config: %s", json.dumps({k: str(v) for k, v in asdict(config).items()}))
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
+    logging.info(
+        "Config: %s", json.dumps({k: str(v) for k, v in asdict(config).items()})
+    )
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     set_seed(config.seed)
@@ -202,20 +239,42 @@ def main() -> None:
 
     train_ds = SleepStageDataset(config.train_data)
     val_ds = SleepStageDataset(config.val_data)
-    model = build_model(config.model_type, train_ds.num_channels, train_ds.num_classes).to(device)
+    model = build_model(
+        config.model_type, train_ds.num_channels, train_ds.num_classes
+    ).to(device)
 
     class_weights = compute_class_weights(train_ds).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay
+    )
 
-    train_loader = DataLoader(train_ds, batch_size=config.batch_size, shuffle=True, num_workers=config.num_workers)
-    val_loader = DataLoader(val_ds, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers)
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=config.batch_size,
+        shuffle=True,
+        num_workers=config.num_workers,
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=config.batch_size,
+        shuffle=False,
+        num_workers=config.num_workers,
+    )
 
     best_val_acc = 0.0
     history = []
 
     for epoch in range(1, config.epochs + 1):
-        train_metrics = train_one_epoch(model, train_loader, criterion, optimizer, device, config.grad_clip, config.log_interval)
+        train_metrics = train_one_epoch(
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device,
+            config.grad_clip,
+            config.log_interval,
+        )
         val_metrics = evaluate(model, val_loader, criterion, device)
         log_metrics(epoch, "train", train_metrics)
         log_metrics(epoch, "val", val_metrics)
@@ -223,7 +282,11 @@ def main() -> None:
 
         if val_metrics["accuracy"] >= best_val_acc:
             best_val_acc = val_metrics["accuracy"]
-            save_checkpoint(config.checkpoint_path, model, {"val_accuracy": best_val_acc, "epoch": epoch})
+            save_checkpoint(
+                config.checkpoint_path,
+                model,
+                {"val_accuracy": best_val_acc, "epoch": epoch},
+            )
 
     with (config.output_dir / "metrics.json").open("w", encoding="utf-8") as fp:
         json.dump(history, fp, indent=2)

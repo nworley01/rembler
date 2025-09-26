@@ -51,7 +51,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.utils import sleep_utils
+from rembler.utils import sleep_utils
 
 # --- Test Target Import ---
 # Ensure that `src` is on the path if needed. Adjust as appropriate for your project layout.
