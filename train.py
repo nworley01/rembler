@@ -11,14 +11,16 @@ from pathlib import Path
 from typing import Dict
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
 from rembler.analysis.metrics.custom_metrics import PerClassMetric
 from rembler.dataio.datasets import SleepStageDataset
+from rembler.utils import dataset_utils as du
+from rembler.utils import sleep_utils as su
 from rembler.utils.hardware_utils import resolve_device
-from rembler.utils.sleep_utils import int_to_stage
 
 
 @dataclass
@@ -27,14 +29,14 @@ class TrainConfig:
     val_data: Path
     output_dir: Path
     epochs: int = 25
-    batch_size: int = 32
+    batch_size: int = 64
     learning_rate: float = 3e-4
     weight_decay: float = 1e-4
     grad_clip: float | None = 1.0
     num_workers: int = 0
     device: str = "auto"
     seed: int = 42
-    log_interval: int = 25
+    log_interval: int = 48
     checkpoint_name: str = "best.pt"
     model_type: str = "small_cnn"  # "small_cnn", "cnn_bilstm", "implicit_cnn"
 
@@ -94,9 +96,9 @@ def train_one_epoch(
     total_loss = 0.0
     correct = 0
     total = 0
-    for step, (signals, labels) in enumerate(dataloader, start=1):
-        signals = signals.to(device)
-        labels = labels.to(device)
+    for step, batch in enumerate(dataloader, start=1):
+        signals = batch["data"].to(device)
+        labels = batch["label"].to(device)
         logits = model(signals)
         loss = criterion(logits, labels)
         optimizer.zero_grad(set_to_none=True)
@@ -129,9 +131,9 @@ def evaluate(
     total = 0
     per_class_metric = PerClassMetric(num_classes=dataloader.dataset.num_classes)
     with torch.no_grad():
-        for step, (signals, labels) in enumerate(dataloader):
-            signals = signals.to(device)
-            labels = labels.to(device)
+        for step, batch in enumerate(dataloader):
+            signals = batch["data"].to(device)
+            labels = batch["label"].to(device)
             logits = model(signals)
             loss = criterion(logits, labels)
             batch_size = labels.size(0)
@@ -146,7 +148,9 @@ def evaluate(
     }
     for metric, value in enumerate(per_class_metric.compute()):
         if isinstance(value, torch.Tensor):
-            metrics_dict[f"{int_to_stage.get(metric, metric)}_accuracy"] = value.item()
+            metrics_dict[f"{su.int_to_stage.get(metric, metric)}_accuracy"] = (
+                value.item()
+            )
 
     return metrics_dict
 
@@ -168,10 +172,10 @@ def log_metrics(epoch: int, phase: str, metrics: Dict[str, float]) -> None:
 def parse_args() -> TrainConfig:
     parser = argparse.ArgumentParser(description="Train a sleep stage classifier")
     parser.add_argument(
-        "--train-data", type=Path, required=True, help="Path to training npz file"
+        "--train-data", type=Path, required=False, help="Path to training npz file"
     )
     parser.add_argument(
-        "--val-data", type=Path, required=True, help="Path to validation npz file"
+        "--val-data", type=Path, required=False, help="Path to validation npz file"
     )
     parser.add_argument(
         "--output-dir",
@@ -237,11 +241,18 @@ def main() -> None:
     device = resolve_device(config.device)
     logging.info("Using device: %s", device)
 
-    train_ds = SleepStageDataset(config.train_data)
-    val_ds = SleepStageDataset(config.val_data)
-    model = build_model(
-        config.model_type, train_ds.num_channels, train_ds.num_classes
-    ).to(device)
+    df = pd.read_csv("data/full_sleep_stage_matched_train_test_split.csv")
+    train_ds = du.CustomDataset(
+        training_dataframe=df.query("role == 'train'"),
+        hdf5_path="/Volumes/DataCave/rembler_data/training_datasets/5bout_noncausal_context.h5",
+        signal_names=["eeg", "emg"],
+    )
+    val_ds = du.CustomDataset(
+        training_dataframe=df.query("role == 'test'"),
+        hdf5_path="/Volumes/DataCave/rembler_data/training_datasets/5bout_noncausal_context.h5",
+        signal_names=["eeg", "emg"],
+    )
+    model = build_model(config.model_type, train_ds.num_channels, 3).to(device)
 
     class_weights = compute_class_weights(train_ds).to(device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
