@@ -126,6 +126,7 @@ class FakeMNE:
 # Unit Tests
 # ---------------------------
 
+@pytest.mark.unit
 def test_decode_sleep_signal_basic_thresholds():
     # values around bins [1.5, 2.5, 3.5]
     arr = np.array([1.0, 1.5, 1.6, 2.4, 2.5, 2.6, 3.4, 3.5, 3.6, 10.0])
@@ -147,6 +148,7 @@ def test_decode_sleep_signal_basic_thresholds():
     assert np.array_equal(out, expected)
 
 
+@pytest.mark.integration
 def test_extract_sleep_stages_with_fake_raw_integer_steps():
     # Prepare a fake "sleep signal" with predictable values to map bins -> stages
     sfreq = 100.0
@@ -173,6 +175,7 @@ def test_extract_sleep_stages_with_fake_raw_integer_steps():
         sleep_utils.mne = original_mne
 
 
+@pytest.mark.integration
 def test_create_sleep_stage_dataframe_builds_expected_columns(monkeypatch):
     # Force extract_sleep_stages to return known integers [0,1,2,3,1]
     monkeypatch.setattr(sleep_utils, "extract_sleep_stages", lambda _: np.array([0, 1, 2, 3, 1]))
@@ -185,6 +188,7 @@ def test_create_sleep_stage_dataframe_builds_expected_columns(monkeypatch):
     assert df.shape[1] == 3  # sleep, start, stop
 
 
+@pytest.mark.integration
 def test_subsample_sleep_dataframe_balances_to_R(monkeypatch):
     # Create a frame with counts: A:4, R:2, S:5, X:3 (X should be dropped)
     sleep = ["A"] * 4 + ["R"] * 2 + ["S"] * 5 + ["X"] * 3
@@ -202,6 +206,7 @@ def test_subsample_sleep_dataframe_balances_to_R(monkeypatch):
     assert "X" not in out.sleep.values
 
 
+@pytest.mark.unit
 def test_determine_buffering_causal_and_noncausal():
     # Non-causal: symmetric buffers
     lead, trail = sleep_utils.determine_buffering(bout_length=10, bout_context=5, sampling_rate=500, causal=False)
@@ -214,6 +219,7 @@ def test_determine_buffering_causal_and_noncausal():
     assert (lead_c, trail_c) == (20000, 0)
 
 
+@pytest.mark.unit
 def test_determine_buffering_asserts_on_non_integer_samples():
     # Choose parameters that result in non-integer buffers
     # (bout_context - 1)/2 * bout_length * sampling_rate = 3/2 * 3 * 7 = 31.5 (non-integer)
@@ -221,6 +227,7 @@ def test_determine_buffering_asserts_on_non_integer_samples():
         sleep_utils.determine_buffering(bout_length=3, bout_context=4, sampling_rate=7, causal=False)
 
 
+@pytest.mark.unit
 def test_get_bout_signal_slices_correctly():
     full_signals = np.arange(2 * 100, dtype=int).reshape(2, 100)  # 2 channels, 100 samples
     # Row-like object
@@ -234,6 +241,8 @@ def test_get_bout_signal_slices_correctly():
     assert np.array_equal(out[1], np.arange(108, 123))
 
 
+@pytest.mark.integration
+@pytest.mark.slow
 def test_process_edf_happy_path_with_mocks(monkeypatch):
     """
     Integration-style test for process_edf with a FakeRaw and monkeypatched helpers.
@@ -290,6 +299,7 @@ def test_process_edf_happy_path_with_mocks(monkeypatch):
         sleep_utils.mne = original_mne
 
 
+@pytest.mark.integration
 def test_process_edf_respects_signals_param(monkeypatch):
     """
     CRITICAL: process_edf ignores the `signals` parameter and hardcodes picks=["EEG","EMG"].
@@ -319,6 +329,7 @@ def test_process_edf_respects_signals_param(monkeypatch):
         sleep_utils.mne = original_mne
 
 
+@pytest.mark.integration
 def test_subsample_sleep_dataframe_missing_R_is_unhandled():
     """
     CRITICAL: subsample_sleep_dataframe assumes presence of 'R' class and will raise KeyError otherwise.
