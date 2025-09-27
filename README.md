@@ -135,3 +135,79 @@ Counts of adjacent bouts
 R    168
 S     15
 A      8
+
+## Testing TODO List
+
+### Unit Tests Needed
+
+The following functions currently lack unit tests and should be prioritized for test coverage:
+
+#### utils/sleep_utils.py
+- [ ] `verify_edf()` - EDF file validation
+- [ ] `extract_sleep_stages_from_edf()` - Sleep stage extraction from EDF
+- [ ] `save_sleep_stages_datatable()` - Save sleep stages to file
+- [ ] `subsample_datatable()` - File-based subsampling
+- [ ] `extract_activity_signal()` - Activity signal extraction
+- [ ] `extract_sleep_context()` - Sleep context extraction
+
+#### utils/config_utils.py
+- [x] `load_config_from_hydra_dump()` - Load Hydra dumped config
+- [x] `load_config_with_compose_api()` - Load config with Compose API
+- [x] `unpack_config()` - Unpack nested config
+
+#### utils/hardware_utils.py
+- [x] `resolve_device()` - Device resolution logic
+
+#### utils/io_utils.py
+- [x] `list_files_with_extension()` - File listing utility
+- [x] `ensure_dir()` - Directory creation utility
+- [x] `save_to_subject_hdf5()` - HDF5 save operations
+- [x] `load_from_subject_hdf5()` - HDF5 load operations
+- [x] `aggregate_csvs()` - CSV aggregation
+
+#### utils/labels.py
+- [x] `normalize_stage()` - Sleep stage normalization
+- [x] `labels_from_annotations()` - Label creation from annotations
+- [x] `labels_from_csv()` - Label creation from CSV
+
+#### utils/dataset_utils.py
+- [x] `split_train_test()` - Train/test splitting
+
+#### dataio/edf_reader.py
+- [ ] `_pick_channels()` - Channel selection logic
+- [ ] `load_edf()` - EDF loading functionality
+
+#### cv.py (Cross-validation functions)
+- [ ] `kfold_split()` - K-fold cross-validation
+- [ ] `stratified_kfold_split()` - Stratified K-fold
+- [ ] `time_series_split()` - Time series splitting
+- [ ] `group_kfold_split()` - Group K-fold
+- [ ] `stratified_group_kfold_split()` - Stratified group K-fold
+- [ ] `cross_validate_model()` - Model cross-validation
+- [ ] `evaluate_cv_results()` - CV results evaluation
+- [ ] `nested_cross_validation()` - Nested cross-validation
+- [ ] `_get_scoring_func()` - Scoring function helper
+- [ ] `train_test_split_temporal()` - Temporal train/test split
+- [ ] `rolling_window_validation()` - Rolling window validation
+
+#### models/cnn_bilstm.py
+- [ ] `_make_conv_stack()` - Convolution stack builder
+- [ ] `build_model()` - Model builder function
+
+#### models/implicit_cnn.py
+- [ ] `build_model()` - Model builder function
+
+### Integration Tests Needed
+
+#### Complex workflows that need integration testing:
+- [ ] End-to-end EDF processing pipeline
+- [ ] Model training workflow
+- [ ] Cross-validation pipeline
+- [ ] Data loading and preprocessing
+- [ ] Config loading and validation
+
+### Current Test Coverage Status
+- **Total functions identified**: 39
+- **Functions with unit tests**: 6 (sleep_utils.py functions only)
+- **Coverage gap**: 33 functions need unit tests
+- **Priority**: Start with utility functions as they're used throughout the codebase
