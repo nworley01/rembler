@@ -112,7 +112,11 @@ def extract_sleep_stages_from_edf(
     # Verify the EDF file
     assert verify_edf(edf_data), f"EDF file {edf_path} failed verification"
     # Extract sleep stages
-    return create_sleep_stage_dataframe(edf_data)
+    sleep_stages = extract_sleep_stages(edf_data, bin_length_in_seconds=bout_length)
+    # Extract activity signal
+    activity = extract_activity_signal(edf_data, samples_per_bout=bout_length * 500)
+    # Create the summary DataFrame
+    return create_sleep_stage_dataframe(sleep_stages, activity)
 
 
 def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -> str:
@@ -122,21 +126,22 @@ def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -
     return file_path
 
 
-def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
+def create_sleep_stage_dataframe(
+    sleep_stages: pd.Series,
+    activity: pd.Series,
+) -> pd.DataFrame:
     """Create a per-bout summary table from an EDF recording.
 
     Each row corresponds to a 10-second window with start/stop sample indices,
     activity metadata and optional context strings for quick inspection.
     """
-    sleep_stages = extract_sleep_stages(edf_data)
     df = (
-        pd.Series(sleep_stages)
-        .map(int_to_stage)
+        sleep_stages.map(int_to_stage)
         .rename("sleep")
         .to_frame()
         .assign(start=lambda df: df.index * 5000)
         .assign(stop=lambda df: (df.index + 1) * 5000)
-        .assign(activity=extract_activity_signal(edf_data))
+        .assign(activity=activity)
         .assign(context=lambda df: extract_sleep_context(df))
     )
     return df
@@ -178,7 +183,7 @@ def extract_sleep_stages(
     step = bin_length_in_samples
     bout_center_points = np.arange(start, raw_edf.n_times, step, dtype=int)
     sleep_signal_bin_center_points = raw_edf[signal_name][0][0, bout_center_points]
-    return decode_sleep_signal(sleep_signal_bin_center_points)
+    return pd.Series(decode_sleep_signal(sleep_signal_bin_center_points))
 
 
 def get_bout_signal(full_signals, row, leading_buffer=0, trailing_buffer=0):
@@ -197,10 +202,23 @@ def extract_activity_signal(edf_data, samples_per_bout=5000):
     )
 
 
-def extract_sleep_context(df: pd.DataFrame) -> pd.Series:
+def extract_sleep_context(
+    df: pd.DataFrame,
+    bout_context: int,
+    causal: bool = False,
+) -> pd.Series:
     """Encode the local neighbourhood of each bout as a short context string."""
     sleep_string = "".join(df.sleep.values)
-    return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3])
+    if causal:
+        return df.index.map(lambda idx: sleep_string[max(idx - bout_context, 0) : idx])
+    else:
+        if bout_context % 2 == 0:
+            raise ValueError("Non-causal context requires an odd bout_context")
+        leading = (bout_context - 1) // 2
+        trailing = leading + 1
+        return df.index.map(
+            lambda idx: sleep_string[max(idx - leading, 0) : idx + trailing]
+        )
 
 
 def determine_buffering(bout_length, bout_context, sampling_rate, causal=False):
