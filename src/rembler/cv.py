@@ -166,7 +166,7 @@ def cross_validate_model(
     cv_method: str = "kfold",
     n_splits: int = 5,
     scoring: str | list[str] | dict[str, Callable] = "accuracy",
-    **cv_kwargs,
+    **cv_kwargs: Any,
 ) -> dict[str, list[float]]:
     """
     Perform cross-validation on a model using specified CV method.
@@ -196,7 +196,7 @@ def cross_validate_model(
     if cv_method not in cv_methods:
         raise ValueError(f"cv_method must be one of {list(cv_methods.keys())}")
 
-    cv_func = cv_methods[cv_method]
+    cv_func: Callable = cv_methods[cv_method]  # type: ignore
 
     # Prepare scoring functions
     if isinstance(scoring, str):
@@ -211,7 +211,7 @@ def cross_validate_model(
         )
 
     # Initialize results
-    results = {metric: [] for metric in scoring_funcs.keys()}
+    results: dict[str, list[float]] = {metric: [] for metric in scoring_funcs.keys()}
 
     # Perform cross-validation
     cv_splits = cv_func(df, n_splits=n_splits, **cv_kwargs)
@@ -270,7 +270,7 @@ def nested_cross_validation(
     outer_splits: int = 5,
     inner_splits: int = 3,
     scoring: str = "accuracy",
-    **cv_kwargs,
+    **cv_kwargs: Any,
 ) -> dict[str, Any]:
     """
     Perform nested cross-validation for model selection and evaluation.

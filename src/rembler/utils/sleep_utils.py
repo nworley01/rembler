@@ -8,8 +8,11 @@ easy to test.  Many of the routines operate on `mne.io.Raw` objects and Pandas
 performed any necessary input validation.
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
+from typing import Any
 
 import mne
 import numpy as np
@@ -26,7 +29,7 @@ stage_to_int = {v: k for k, v in int_to_stage.items()}
 
 
 def verify_edf(
-    edf_file: str | Path,
+    edf_file: str | Path | mne.io.edf.edf.RawEDF,
     duration: int = 24,
     sfreq: int = 500,
 ) -> bool:
@@ -122,7 +125,7 @@ def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -
     return file_path
 
 
-def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
+def create_sleep_stage_dataframe(edf_data: Any) -> pd.DataFrame:
     """Create a per-bout summary table from an EDF recording.
 
     Each row corresponds to a 10-second window with start/stop sample indices,
@@ -164,7 +167,7 @@ def decode_sleep_signal(arr: np.ndarray) -> np.ndarray:
 
 
 def extract_sleep_stages(
-    raw_edf,
+    raw_edf: Any,
     bin_length_in_seconds: int = 10,
     signal_name: str = "Signal-Sleep",
 ) -> np.ndarray:
@@ -177,12 +180,14 @@ def extract_sleep_stages(
     return decode_sleep_signal(sleep_signal_bin_center_points)
 
 
-def get_bout_signal(full_signals, row, leading_buffer=0, trailing_buffer=0):
+def get_bout_signal(
+    full_signals: Any, row: Any, leading_buffer: int = 0, trailing_buffer: int = 0
+) -> Any:
     """Slice the multichannel signal matrix to the window associated with a row."""
     return full_signals[:, row.start - leading_buffer : row.stop + trailing_buffer]
 
 
-def extract_activity_signal(edf_data, samples_per_bout=5000):
+def extract_activity_signal(edf_data: Any, samples_per_bout: int = 5000) -> pd.Series:
     """Compute a per-bout activity proxy using the rolling max over the channel."""
     activity_channel = edf_data.get_data(picks=["Activity"])[0]
     return (
@@ -196,16 +201,18 @@ def extract_activity_signal(edf_data, samples_per_bout=5000):
 def extract_sleep_context(df: pd.DataFrame) -> pd.Series:
     """Encode the local neighbourhood of each bout as a short context string."""
     sleep_string = "".join(df.sleep.values)
-    return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3])
+    return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3]).to_series()
 
 
-def determine_buffering(bout_length, bout_context, sampling_rate, causal=False):
+def determine_buffering(
+    bout_length: int, bout_context: int, sampling_rate: int, causal: bool = False
+) -> tuple[int, int]:
     """Derive leading/trailing buffer sizes for contextual signal windows."""
     if causal:
         leading_buffer = (bout_context - 1) * bout_length * sampling_rate
         trailing_buffer = 0
     else:
-        leading_buffer = (bout_context - 1) / 2 * bout_length * sampling_rate
+        leading_buffer = int((bout_context - 1) / 2 * bout_length * sampling_rate)
         trailing_buffer = leading_buffer
     assert leading_buffer % 1 == 0, (
         "Leading buffer must be an integer number of samples"

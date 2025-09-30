@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import torch
 from torch import nn
@@ -46,12 +47,12 @@ def _make_conv_stack(
 class CNNBiLSTM(nn.Module):
     """Stack of 1D convolutions followed by a bidirectional LSTM head."""
 
-    def __init__(self, config: CNNBiLSTMConfig | None = None, **kwargs) -> None:
+    def __init__(self, config: CNNBiLSTMConfig | None = None, **kwargs: Any) -> None:
         super().__init__()
         if config is None:
             if "in_channels" not in kwargs or "num_classes" not in kwargs:
                 raise ValueError("Either provide config or in_channels and num_classes")
-            config = CNNBiLSTMConfig(**kwargs)  # type: ignore[arg-type]
+            config = CNNBiLSTMConfig(**kwargs)
         self.config = config
 
         self.conv = _make_conv_stack(
@@ -91,7 +92,7 @@ class CNNBiLSTM(nn.Module):
         return self.classifier(pooled)
 
 
-def build_model(**kwargs) -> CNNBiLSTM:
+def build_model(**kwargs: Any) -> CNNBiLSTM:
     """Factory compatible with the training script."""
     if isinstance(kwargs.get("config"), CNNBiLSTMConfig):
         config = kwargs["config"]

@@ -30,7 +30,7 @@ class Recording:
 def _pick_channels(raw: mne.io.BaseRaw, wanted: list[str] | None) -> list[int]:
     if not wanted:
         return list(range(len(raw.ch_names)))
-    picks = []
+    picks: list = []
     for w in wanted:
         matches = (
             mne.pick_channels_regexp(raw.ch_names, regexp=w)
