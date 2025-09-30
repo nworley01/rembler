@@ -17,7 +17,7 @@ def load_config_from_hydra_dump(experiment_name, base_dir=BASE_DIR):
 
     """
     filename = f"{base_dir}/{experiment_name}/.hydra/config.yaml"
-    with open(filename, 'r') as file:
+    with open(filename) as file:
         config = yaml.safe_load(file)
     return config
 

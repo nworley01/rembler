@@ -30,7 +30,7 @@ class TrainConfig:
     @property
     def checkpoint_path(self) -> Path:
         return self.output_dir / self.checkpoint_name
-    
+
 @dataclass
 class ModelConfig:
     input_channels: int = 2
@@ -41,7 +41,7 @@ class ModelConfig:
     hidden_size: int = 32
     num_layers: int = 2
     causal: bool = False
-    bidirectional: bool = True  
+    bidirectional: bool = True
 
 @dataclass
 class DatasetConfig:
@@ -53,7 +53,7 @@ class DatasetConfig:
     augment: bool = False
     shuffle: bool = True
     pin_memory: bool = False
-    
+
 @dataclass
 class HardwareConfig:
     device: str = "auto"

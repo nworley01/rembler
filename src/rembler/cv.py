@@ -5,25 +5,27 @@ This module provides functions for performing various types of cross-validation
 on pandas DataFrames, including k-fold, stratified, and time series splits.
 """
 
+from collections.abc import Callable, Generator
+from typing import Any
+
 import numpy as np
 import pandas as pd
-from typing import Generator, Tuple, Optional, Union, List, Dict, Any, Callable
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import (
+    GroupKFold,
     KFold,
+    StratifiedGroupKFold,
     StratifiedKFold,
     TimeSeriesSplit,
-    GroupKFold,
-    StratifiedGroupKFold
 )
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
 def kfold_split(
     df: pd.DataFrame,
     n_splits: int = 5,
     shuffle: bool = True,
-    random_state: Optional[int] = None
-) -> Generator[Tuple[pd.DataFrame, pd.DataFrame], None, None]:
+    random_state: int | None = None
+) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform k-fold cross-validation split on a DataFrame.
 
@@ -49,8 +51,8 @@ def stratified_kfold_split(
     target_col: str,
     n_splits: int = 5,
     shuffle: bool = True,
-    random_state: Optional[int] = None
-) -> Generator[Tuple[pd.DataFrame, pd.DataFrame], None, None]:
+    random_state: int | None = None
+) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform stratified k-fold cross-validation split on a DataFrame.
 
@@ -75,10 +77,10 @@ def stratified_kfold_split(
 def time_series_split(
     df: pd.DataFrame,
     n_splits: int = 5,
-    max_train_size: Optional[int] = None,
-    test_size: Optional[int] = None,
+    max_train_size: int | None = None,
+    test_size: int | None = None,
     gap: int = 0
-) -> Generator[Tuple[pd.DataFrame, pd.DataFrame], None, None]:
+) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform time series cross-validation split on a DataFrame.
 
@@ -109,7 +111,7 @@ def group_kfold_split(
     df: pd.DataFrame,
     group_col: str,
     n_splits: int = 5
-) -> Generator[Tuple[pd.DataFrame, pd.DataFrame], None, None]:
+) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform group k-fold cross-validation split on a DataFrame.
 
@@ -135,8 +137,8 @@ def stratified_group_kfold_split(
     group_col: str,
     n_splits: int = 5,
     shuffle: bool = True,
-    random_state: Optional[int] = None
-) -> Generator[Tuple[pd.DataFrame, pd.DataFrame], None, None]:
+    random_state: int | None = None
+) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform stratified group k-fold cross-validation split on a DataFrame.
 
@@ -166,13 +168,13 @@ def stratified_group_kfold_split(
 def cross_validate_model(
     df: pd.DataFrame,
     model: Any,
-    feature_cols: List[str],
+    feature_cols: list[str],
     target_col: str,
     cv_method: str = 'kfold',
     n_splits: int = 5,
-    scoring: Union[str, List[str], Dict[str, Callable]] = 'accuracy',
+    scoring: str | list[str] | dict[str, Callable] = 'accuracy',
     **cv_kwargs
-) -> Dict[str, List[float]]:
+) -> dict[str, list[float]]:
     """
     Perform cross-validation on a model using specified CV method.
 
@@ -237,7 +239,7 @@ def cross_validate_model(
     return results
 
 
-def evaluate_cv_results(results: Dict[str, List[float]]) -> pd.DataFrame:
+def evaluate_cv_results(results: dict[str, list[float]]) -> pd.DataFrame:
     """
     Evaluate cross-validation results and return summary statistics.
 
@@ -265,8 +267,8 @@ def evaluate_cv_results(results: Dict[str, List[float]]) -> pd.DataFrame:
 def nested_cross_validation(
     df: pd.DataFrame,
     model_class: Any,
-    param_grid: Dict[str, List[Any]],
-    feature_cols: List[str],
+    param_grid: dict[str, list[Any]],
+    feature_cols: list[str],
     target_col: str,
     outer_cv: str = 'kfold',
     inner_cv: str = 'kfold',
@@ -274,7 +276,7 @@ def nested_cross_validation(
     inner_splits: int = 3,
     scoring: str = 'accuracy',
     **cv_kwargs
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Perform nested cross-validation for model selection and evaluation.
 
@@ -361,8 +363,8 @@ def train_test_split_temporal(
     df: pd.DataFrame,
     time_col: str,
     test_size: float = 0.2,
-    validation_size: Optional[float] = None
-) -> Union[Tuple[pd.DataFrame, pd.DataFrame], Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]]:
+    validation_size: float | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame] | tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Split DataFrame temporally based on time column.
 
@@ -403,8 +405,8 @@ def rolling_window_validation(
     df: pd.DataFrame,
     window_size: int,
     step_size: int = 1,
-    min_train_size: Optional[int] = None
-) -> Generator[Tuple[pd.DataFrame, pd.DataFrame], None, None]:
+    min_train_size: int | None = None
+) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform rolling window validation on time series data.
 

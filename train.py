@@ -8,7 +8,6 @@ import logging
 import random
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -91,7 +90,7 @@ def train_one_epoch(
     device: torch.device,
     grad_clip: float | None,
     log_interval: int,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     model.train()
     total_loss = 0.0
     correct = 0
@@ -124,7 +123,7 @@ def train_one_epoch(
 
 def evaluate(
     model: nn.Module, dataloader: DataLoader, criterion: nn.Module, device: torch.device
-) -> Dict[str, float]:
+) -> dict[str, float]:
     model.eval()
     total_loss = 0.0
     correct = 0
@@ -155,7 +154,7 @@ def evaluate(
     return metrics_dict
 
 
-def save_checkpoint(path: Path, model: nn.Module, metadata: Dict[str, float]) -> None:
+def save_checkpoint(path: Path, model: nn.Module, metadata: dict[str, float]) -> None:
     payload = {
         "state_dict": model.state_dict(),
         "metadata": metadata,
@@ -164,7 +163,7 @@ def save_checkpoint(path: Path, model: nn.Module, metadata: Dict[str, float]) ->
     logging.info("Saved checkpoint to %s", path)
 
 
-def log_metrics(epoch: int, phase: str, metrics: Dict[str, float]) -> None:
+def log_metrics(epoch: int, phase: str, metrics: dict[str, float]) -> None:
     formatted = " ".join(f"{k}={v:.4f}" for k, v in metrics.items())
     logging.info("%s epoch=%d %s", phase, epoch, formatted)
 

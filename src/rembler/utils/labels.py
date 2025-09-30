@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -20,20 +19,20 @@ def normalize_stage(label: str) -> int:
     key = re.sub(r"\s+", "", label.upper())
     return CLASS_MAP.get(key, UNKNOWN)
 
-def labels_from_annotations(annotations: List[Tuple[float, float, str]], total_sec: float, epoch_sec: int) -> np.ndarray:
+def labels_from_annotations(annotations: list[tuple[float, float, str]], total_sec: float, epoch_sec: int) -> np.ndarray:
     """Rasterize EDF annotations into per-epoch labels (UNKNOWN if uncovered)."""
     n_epochs = int(np.floor(total_sec / epoch_sec))
     y = np.full(n_epochs, UNKNOWN, dtype=np.int16)
     for onset, dur, desc in annotations:
         cls = normalize_stage(desc)
-        if cls == UNKNOWN: 
+        if cls == UNKNOWN:
             continue
         start_ep = max(0, int(np.floor(onset / epoch_sec)))
         end_ep   = min(n_epochs, int(np.ceil((onset + dur) / epoch_sec)))
         y[start_ep:end_ep] = cls
     return y
 
-def labels_from_csv(csv_path: str, epoch_sec: int, total_sec: Optional[float]=None) -> np.ndarray:
+def labels_from_csv(csv_path: str, epoch_sec: int, total_sec: float | None=None) -> np.ndarray:
     """
     CSV schema options:
       A) per-epoch: columns ['epoch', 'stage']  (0-based epoch index)

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import torch
@@ -30,7 +29,7 @@ class SleepStageDataset(Dataset):
     def __len__(self) -> int:
         return self.labels.shape[0]
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
         return self.signals[index], self.labels[index]
 
     @property

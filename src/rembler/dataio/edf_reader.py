@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import mne
 import numpy as np
@@ -10,23 +9,23 @@ import numpy as np
 @dataclass
 class EDFLoadConfig:
     target_sample_rate: int = 500
-    eeg_channels: Optional[List[str]] = None     # exact names or regex handled downstream
-    emg_channels: Optional[List[str]] = None
-    bandpass: Tuple[float, float] = (0.5, 100.0)
-    notch_hz: Optional[float] = 60.0
-    reref: Optional[str] = None                  # e.g. 'average' or 'EEG2' to re-reference EEG1-EEG2
+    eeg_channels: list[str] | None = None     # exact names or regex handled downstream
+    emg_channels: list[str] | None = None
+    bandpass: tuple[float, float] = (0.5, 100.0)
+    notch_hz: float | None = 60.0
+    reref: str | None = None                  # e.g. 'average' or 'EEG2' to re-reference EEG1-EEG2
     preload: bool = True
 
 @dataclass
 class Recording:
     data: np.ndarray               # shape (C, T) after resample/filter; EEG first, then EMG
-    ch_names: List[str]
+    ch_names: list[str]
     sr: int
-    start_time_utc: Optional[str]
-    annotations: List[Tuple[float, float, str]]  # (onset_sec, duration_sec, desc)
-    metadata: Dict
+    start_time_utc: str | None
+    annotations: list[tuple[float, float, str]]  # (onset_sec, duration_sec, desc)
+    metadata: dict
 
-def _pick_channels(raw: mne.io.BaseRaw, wanted: Optional[List[str]]) -> List[int]:
+def _pick_channels(raw: mne.io.BaseRaw, wanted: list[str] | None) -> list[int]:
     if not wanted:
         return list(range(len(raw.ch_names)))
     picks = []
@@ -70,7 +69,7 @@ def load_edf(path: str, cfg: EDFLoadConfig) -> Recording:
     # Extract annotations (if present)
     ann = []
     if raw.annotations and len(raw.annotations) > 0:
-        for onset, duration, desc in zip(raw.annotations.onset, raw.annotations.duration, raw.annotations.description):
+        for onset, duration, desc in zip(raw.annotations.onset, raw.annotations.duration, raw.annotations.description, strict=False):
             # MNE stores onset in seconds from recording start
             ann.append((float(onset), float(duration), str(desc)))
 

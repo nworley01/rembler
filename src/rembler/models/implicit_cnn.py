@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Type
+from typing import Any
 
 import torch
 from torch import nn
@@ -16,7 +16,7 @@ class ImplicitCNNConfig:
     out_channels: int
     hidden_dim: int = 64
     mlp_layers: int = 2
-    activation: Type[nn.Module] = nn.GELU
+    activation: type[nn.Module] = nn.GELU
     bias: bool = True
 
 
@@ -29,7 +29,7 @@ class ImplicitFilterGenerator(nn.Module):
         out_channels: int,
         hidden_dim: int,
         mlp_layers: int,
-        activation: Type[nn.Module],
+        activation: type[nn.Module],
     ) -> None:
         super().__init__()
         layers: list[nn.Module] = []

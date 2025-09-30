@@ -1,8 +1,8 @@
 """CNN + bidirectional LSTM architecture for sleep stage classification."""
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Sequence
 
 import torch
 from torch import nn

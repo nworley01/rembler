@@ -30,7 +30,7 @@ class PerClassMetric:
     def reset(self):
         self.correct = [0] * self.num_classes
         self.total = [0] * self.num_classes
-    
+
     def __str__(self):
         accuracies = self.compute()
         return ", ".join([f"Class {self.int_to_stage.get(i, i)}: {acc:.4f}" for i, acc in enumerate(accuracies)])

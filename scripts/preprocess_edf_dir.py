@@ -6,9 +6,8 @@ import json
 from pathlib import Path
 
 import numpy as np
-from src.preprocessing.epocher import epochize
-
 from src.dataio.edf_reader import EDFLoadConfig, load_edf
+from src.preprocessing.epocher import epochize
 from src.utils.labels import labels_from_annotations, labels_from_csv
 
 

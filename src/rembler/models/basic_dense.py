@@ -7,7 +7,7 @@ class SimpleDense(nn.Module):
 
     def __init__(self, in_channels: int, num_classes: int, sequence_length: int = 25000) -> None:
         super().__init__()
-        
+
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(sequence_length*in_channels, 32),
