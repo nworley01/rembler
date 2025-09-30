@@ -6,26 +6,20 @@ import torch
 
 @dataclass
 class TrainConfig:
+    train_data: Path
+    val_data: Path
     output_dir: Path
     epochs: int = 25
-    batch_size: int = 32
+    batch_size: int = 64
     learning_rate: float = 3e-4
     weight_decay: float = 1e-4
     grad_clip: float | None = 1.0
     num_workers: int = 0
     device: str = "auto"
     seed: int = 42
-    log_interval: int = 25
+    log_interval: int = 48
     checkpoint_name: str = "best.pt"
-
-    def resolve_device(self) -> torch.device:
-        if self.device == "auto":
-            if torch.cuda.is_available():
-                return torch.device("cuda")
-            if torch.backends.mps.is_available():  # type: ignore[attr-defined]
-                return torch.device("mps")
-            return torch.device("cpu")
-        return torch.device(self.device)
+    model_type: str = "small_cnn"  # "small_cnn", "cnn_bilstm", "implicit_cnn"
 
     @property
     def checkpoint_path(self) -> Path:
