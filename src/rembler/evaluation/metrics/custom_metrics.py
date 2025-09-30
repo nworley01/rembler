@@ -1,6 +1,6 @@
 import torch
 
-from rembler.utils.sleep_utils import int_to_stage
+from rembler.data.sleep_utils import int_to_stage
 
 
 class PerClassMetric:

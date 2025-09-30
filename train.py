@@ -15,11 +15,11 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from rembler.analysis.metrics.custom_metrics import PerClassMetric
-from rembler.dataio.datasets import SleepStageDataset
-from rembler.utils import dataset_utils as du
-from rembler.utils import sleep_utils as su
-from rembler.utils.hardware_utils import resolve_device
+from rembler.data import dataset_utils as du
+from rembler.data import sleep_utils as su
+from rembler.data.datasets import SleepStageDataset
+from rembler.evaluation.metrics.custom_metrics import PerClassMetric
+from rembler.training.hardware_utils import resolve_device
 
 
 @dataclass
