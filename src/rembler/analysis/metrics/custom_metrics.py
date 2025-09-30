@@ -1,4 +1,3 @@
-
 import torch
 
 from rembler.utils.sleep_utils import int_to_stage
@@ -6,6 +5,7 @@ from rembler.utils.sleep_utils import int_to_stage
 
 class PerClassMetric:
     """Custom metric to compute per-class accuracy."""
+
     def __init__(self, num_classes: int):
         self.num_classes = num_classes
         self.reset()
@@ -14,9 +14,11 @@ class PerClassMetric:
     def update(self, preds: torch.Tensor, targets: torch.Tensor):
         preds = preds.cpu().numpy()
         targets = targets.cpu().numpy()
-        assert preds.shape == targets.shape, "Predictions and targets must have the same shape"
+        assert preds.shape == targets.shape, (
+            "Predictions and targets must have the same shape"
+        )
         for cls in range(self.num_classes):
-            cls_mask = (targets == cls)
+            cls_mask = targets == cls
             self.correct[cls] += (preds[cls_mask] == targets[cls_mask]).sum()
             self.total[cls] += cls_mask.sum()
 
@@ -33,4 +35,9 @@ class PerClassMetric:
 
     def __str__(self):
         accuracies = self.compute()
-        return ", ".join([f"Class {self.int_to_stage.get(i, i)}: {acc:.4f}" for i, acc in enumerate(accuracies)])
+        return ", ".join(
+            [
+                f"Class {self.int_to_stage.get(i, i)}: {acc:.4f}"
+                for i, acc in enumerate(accuracies)
+            ]
+        )

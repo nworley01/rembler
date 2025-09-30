@@ -31,6 +31,7 @@ class TrainConfig:
     def checkpoint_path(self) -> Path:
         return self.output_dir / self.checkpoint_name
 
+
 @dataclass
 class ModelConfig:
     input_channels: int = 2
@@ -43,6 +44,7 @@ class ModelConfig:
     causal: bool = False
     bidirectional: bool = True
 
+
 @dataclass
 class DatasetConfig:
     train_data: Path
@@ -53,6 +55,7 @@ class DatasetConfig:
     augment: bool = False
     shuffle: bool = True
     pin_memory: bool = False
+
 
 @dataclass
 class HardwareConfig:

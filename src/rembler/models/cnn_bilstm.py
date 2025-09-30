@@ -1,4 +1,5 @@
 """CNN + bidirectional LSTM architecture for sleep stage classification."""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
@@ -32,7 +33,9 @@ def _make_conv_stack(
     current = in_channels
     padding = kernel_size // 2
     for out_channels in channels:
-        layers.append(nn.Conv1d(current, out_channels, kernel_size=kernel_size, padding=padding))
+        layers.append(
+            nn.Conv1d(current, out_channels, kernel_size=kernel_size, padding=padding)
+        )
         layers.append(nn.GroupNorm(32, out_channels))
         layers.append(nn.ReLU(inplace=True))
         layers.append(nn.MaxPool1d(pool_size))
@@ -58,7 +61,11 @@ class CNNBiLSTM(nn.Module):
             pool_size=config.conv_pool_size,
         )
 
-        lstm_input_size = config.conv_channels[-1] if len(config.conv_channels) else config.in_channels
+        lstm_input_size = (
+            config.conv_channels[-1]
+            if len(config.conv_channels)
+            else config.in_channels
+        )
         self.lstm = nn.LSTM(
             input_size=lstm_input_size,
             hidden_size=config.lstm_hidden_size,

@@ -1,4 +1,5 @@
 """Implicit convolutional model that operates in the frequency domain."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -43,10 +44,14 @@ class ImplicitFilterGenerator(nn.Module):
         self.out_channels = out_channels
         self.in_channels = in_channels
 
-    def forward(self, length: int, device: torch.device, dtype: torch.dtype) -> torch.Tensor:
+    def forward(
+        self, length: int, device: torch.device, dtype: torch.dtype
+    ) -> torch.Tensor:
         if length <= 0:
             raise ValueError("Input sequence length must be positive")
-        positions = torch.linspace(0.0, 1.0, steps=length, device=device, dtype=dtype).unsqueeze(-1)
+        positions = torch.linspace(
+            0.0, 1.0, steps=length, device=device, dtype=dtype
+        ).unsqueeze(-1)
         filters = self.mlp(positions)  # (L, out*in)
         filters = filters.view(length, self.out_channels, self.in_channels)
         return filters.permute(1, 2, 0).contiguous()  # (out, in, L)
@@ -70,11 +75,15 @@ class ImplicitFrequencyCNN(nn.Module):
             mlp_layers=config.mlp_layers,
             activation=config.activation,
         )
-        self.bias = nn.Parameter(torch.zeros(config.out_channels)) if config.bias else None
+        self.bias = (
+            nn.Parameter(torch.zeros(config.out_channels)) if config.bias else None
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 3:
-            raise ValueError(f"Expected input shape (batch, channels, time), got {tuple(x.shape)}")
+            raise ValueError(
+                f"Expected input shape (batch, channels, time), got {tuple(x.shape)}"
+            )
         batch, channels, time_steps = x.shape
         if channels != self.config.in_channels:
             raise ValueError(
@@ -83,7 +92,9 @@ class ImplicitFrequencyCNN(nn.Module):
 
         freq_x = torch.fft.rfft(x, dim=-1)
 
-        filters_time = self.filter_generator(length=time_steps, device=x.device, dtype=x.dtype)
+        filters_time = self.filter_generator(
+            length=time_steps, device=x.device, dtype=x.dtype
+        )
         freq_filters = torch.fft.rfft(filters_time, dim=-1)
 
         freq_x = freq_x.unsqueeze(1)

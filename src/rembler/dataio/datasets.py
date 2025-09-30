@@ -12,7 +12,9 @@ class SleepStageDataset(Dataset):
         self.path = npz_path
         with np.load(npz_path) as arrays:
             if "signals" not in arrays or "labels" not in arrays:
-                raise KeyError(f"{npz_path} must contain 'signals' and 'labels' entries")
+                raise KeyError(
+                    f"{npz_path} must contain 'signals' and 'labels' entries"
+                )
             signals = arrays["signals"]
             labels = arrays["labels"]
         if signals.ndim != 3:
