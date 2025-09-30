@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import yaml
 from hydra import compose, initialize
 from omegaconf import OmegaConf
@@ -5,7 +9,7 @@ from omegaconf import OmegaConf
 BASE_DIR = "/path/to/your/base/dir"  # Update this path as needed
 
 
-def load_config_from_hydra_dump(experiment_name, base_dir=BASE_DIR):
+def load_config_from_hydra_dump(experiment_name: str, base_dir: str = BASE_DIR) -> dict[str, Any]:
     """
     Load a configuration from a Hydra dump file.
 
@@ -23,7 +27,7 @@ def load_config_from_hydra_dump(experiment_name, base_dir=BASE_DIR):
     return config
 
 
-def load_config_with_compose_api(config_path="config", overrides=None):
+def load_config_with_compose_api(config_path: str = "config", overrides: list[str] | None = None) -> dict[str, Any]:
     """
     Load a configuration file using the Hydra Compose API.
 
@@ -34,12 +38,14 @@ def load_config_with_compose_api(config_path="config", overrides=None):
     Returns:
         dict: The loaded configuration as a dictionary.
     """
+    if overrides is None:
+        overrides = []
     with initialize(version_base=None, config_path=config_path, job_name="test_app"):
         cfg = compose(config_name="config", overrides=overrides)
         return yaml.safe_load(OmegaConf.to_yaml(cfg))
 
 
-def unpack_config(config):
+def unpack_config(config: dict[str, Any]) -> tuple[None, None, None, None, None]:
     """
     Unpacks the configuration dictionary into individual specification objects.
 

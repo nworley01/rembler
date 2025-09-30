@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import h5py
 import numpy as np
 import pandas as pd
@@ -8,7 +12,7 @@ from torch.utils.data import Dataset, Sampler
 from rembler.utils import sleep_utils as su
 
 
-def split_train_test(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def split_train_test(df: pd.DataFrame) -> pd.DataFrame:
     train_df, test_df = train_test_split(
         df,
         stratify=df.sleep,
@@ -20,11 +24,13 @@ def split_train_test(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     return pd.concat([train_df, test_df])
 
 
-class CustomSampler(Sampler):
-    def __init__(self, df: pd.DataFrame):
-        pass
+class CustomSampler(Sampler[int]):
+    def __init__(self, df: pd.DataFrame) -> None:
+        self.df = df
+        self.train_indices: list[int] = []
+        self.test_indices: list[int] = []
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         return iter(self.train_indices + self.test_indices)
 
     def __len__(self) -> int:
@@ -36,11 +42,11 @@ class CustomDataset(Dataset):
         self,
         training_dataframe: pd.DataFrame,
         hdf5_path: str,
-        signal_names: list[str] = None,
-    ):
+        signal_names: list[str] | None = None,
+    ) -> None:
         self.df = training_dataframe
         self.hdf5_path = hdf5_path
-        self.signal_names = signal_names  # Example signal names
+        self.signal_names = signal_names if signal_names is not None else ["eeg", "emg"]
         self.labels = torch.as_tensor(
             self.df.sleep.map(su.stage_to_int).values, dtype=torch.int64
         )
@@ -54,18 +60,18 @@ class CustomDataset(Dataset):
     def __len__(self) -> int:
         return len(self.df)
 
-    def __getitem__(self, idx: int) -> dict:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         if self.hf is None:
             # Open the HDF5 file handle only when __getitem__ is called
             # This ensures each worker in DataLoader has its own file handle
             self.hf = h5py.File(self.hdf5_path, "r")
         row = self.df.iloc[idx]
 
-        data = np.vstack(
+        data_np = np.vstack(
             [self.hf[f"{row.bout_id}/{signal}"][:] for signal in self.signal_names]
         )
         # Convert to PyTorch tensor if needed and apply any transformations
-        data = torch.from_numpy(data).float()  # Example: assuming float data
+        data = torch.from_numpy(data_np).float()  # Example: assuming float data
         label = torch.tensor(
             su.stage_to_int.get(row.sleep, row.sleep)
         )  # Assuming 'sleep' column contains the label

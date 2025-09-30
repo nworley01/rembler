@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import torch
 
 from rembler.utils.sleep_utils import int_to_stage
@@ -6,12 +8,12 @@ from rembler.utils.sleep_utils import int_to_stage
 class PerClassMetric:
     """Custom metric to compute per-class accuracy."""
 
-    def __init__(self, num_classes: int):
+    def __init__(self, num_classes: int) -> None:
         self.num_classes = num_classes
         self.reset()
         self.int_to_stage = int_to_stage
 
-    def update(self, preds: torch.Tensor, targets: torch.Tensor):
+    def update(self, preds: torch.Tensor, targets: torch.Tensor) -> None:
         preds = preds.cpu().numpy()
         targets = targets.cpu().numpy()
         assert preds.shape == targets.shape, (
@@ -29,11 +31,11 @@ class PerClassMetric:
                 accuracies[cls] = self.correct[cls] / self.total[cls]
         return accuracies
 
-    def reset(self):
+    def reset(self) -> None:
         self.correct = [0] * self.num_classes
         self.total = [0] * self.num_classes
 
-    def __str__(self):
+    def __str__(self) -> str:
         accuracies = self.compute()
         return ", ".join(
             [
