@@ -145,10 +145,14 @@ def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
 def subsample_sleep_dataframe(
     df: pd.DataFrame,
     require_full_context: bool = True,
+    minority_class: str = "R",
 ) -> pd.DataFrame:
     """Return a balanced sample of sleep stages by matching REM frequency."""
     df = df.loc[df.context.apply(lambda c: len(c) == 5)] if require_full_context else df
-    r_bouts_count = df.sleep.value_counts()["R"]
+    stage_counts = df.sleep.value_counts()
+    if minority_class not in stage_counts.index:
+        raise ValueError(f"Minority class '{minority_class}' not found in DataFrame")
+    r_bouts_count = stage_counts[minority_class]
     return (
         df[df.sleep != "X"]
         .groupby("sleep")
