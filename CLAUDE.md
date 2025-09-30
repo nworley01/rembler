@@ -20,15 +20,30 @@ source .venv/bin/activate
 ### Testing
 ```bash
 # Run all tests with coverage
-pytest
+uv run pytest
 
 # Run specific test types
-pytest -m "not slow"  # Skip slow tests
-pytest -m unit        # Run only unit tests
-pytest -m integration # Run only integration tests
+uv run pytest -m "not slow"  # Skip slow tests
+uv run pytest -m unit        # Run only unit tests
+uv run pytest -m integration # Run only integration tests
 
 # Run single test file
-pytest tests/test_specific.py
+uv run pytest tests/test_specific.py
+```
+
+### Code Quality
+```bash
+# Lint code with ruff
+uv run ruff check .
+
+# Auto-fix linting issues
+uv run ruff check . --fix
+
+# Format code with ruff
+uv run ruff format .
+
+# Type check with mypy
+uv run mypy src
 ```
 
 ### Training
