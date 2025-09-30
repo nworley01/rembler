@@ -9,7 +9,9 @@ from omegaconf import OmegaConf
 BASE_DIR = "/path/to/your/base/dir"  # Update this path as needed
 
 
-def load_config_from_hydra_dump(experiment_name: str, base_dir: str = BASE_DIR) -> dict[str, Any]:
+def load_config_from_hydra_dump(
+    experiment_name: str, base_dir: str = BASE_DIR
+) -> dict[str, Any]:
     """
     Load a configuration from a Hydra dump file.
 
@@ -27,7 +29,9 @@ def load_config_from_hydra_dump(experiment_name: str, base_dir: str = BASE_DIR) 
     return config
 
 
-def load_config_with_compose_api(config_path: str = "config", overrides: list[str] | None = None) -> dict[str, Any]:
+def load_config_with_compose_api(
+    config_path: str = "config", overrides: list[str] | None = None
+) -> dict[str, Any]:
     """
     Load a configuration file using the Hydra Compose API.
 

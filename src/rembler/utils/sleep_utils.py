@@ -180,7 +180,9 @@ def extract_sleep_stages(
     return decode_sleep_signal(sleep_signal_bin_center_points)
 
 
-def get_bout_signal(full_signals: Any, row: Any, leading_buffer: int = 0, trailing_buffer: int = 0) -> Any:
+def get_bout_signal(
+    full_signals: Any, row: Any, leading_buffer: int = 0, trailing_buffer: int = 0
+) -> Any:
     """Slice the multichannel signal matrix to the window associated with a row."""
     return full_signals[:, row.start - leading_buffer : row.stop + trailing_buffer]
 
@@ -202,7 +204,9 @@ def extract_sleep_context(df: pd.DataFrame) -> pd.Series:
     return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3])
 
 
-def determine_buffering(bout_length: int, bout_context: int, sampling_rate: int, causal: bool = False) -> tuple[int, int]:
+def determine_buffering(
+    bout_length: int, bout_context: int, sampling_rate: int, causal: bool = False
+) -> tuple[int, int]:
     """Derive leading/trailing buffer sizes for contextual signal windows."""
     if causal:
         leading_buffer = (bout_context - 1) * bout_length * sampling_rate
