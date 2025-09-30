@@ -75,9 +75,9 @@ def verify_edf(
 
 def extract_sleep_stages_from_edf(
     edf_path: str,
-    signals: list[str],
     bout_length: int = 10,
     bout_context: int = 5,
+    sampling_rate: int = 500,
     causal: bool = False,
 ) -> pd.DataFrame:
     """Load an EDF recording and return a per-bout sleep-stage table.
@@ -114,9 +114,11 @@ def extract_sleep_stages_from_edf(
     # Extract sleep stages
     sleep_stages = extract_sleep_stages(edf_data, bin_length_in_seconds=bout_length)
     # Extract activity signal
-    activity = extract_activity_signal(edf_data, samples_per_bout=bout_length * 500)
+    activity = extract_activity_signal(
+        edf_data, samples_per_bout=bout_length * sampling_rate
+    )
     # Create the summary DataFrame
-    return create_sleep_stage_dataframe(sleep_stages, activity)
+    return create_sleep_stage_dataframe(sleep_stages, activity, bout_context, causal)
 
 
 def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -> str:
@@ -129,6 +131,8 @@ def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -
 def create_sleep_stage_dataframe(
     sleep_stages: pd.Series,
     activity: pd.Series,
+    bout_context: int,
+    causal: bool,
 ) -> pd.DataFrame:
     """Create a per-bout summary table from an EDF recording.
 
@@ -142,7 +146,7 @@ def create_sleep_stage_dataframe(
         .assign(start=lambda df: df.index * 5000)
         .assign(stop=lambda df: (df.index + 1) * 5000)
         .assign(activity=activity)
-        .assign(context=lambda df: extract_sleep_context(df))
+        .assign(context=lambda df: extract_sleep_context(df, bout_context, causal))
     )
     return df
 
@@ -205,7 +209,7 @@ def extract_activity_signal(edf_data, samples_per_bout=5000):
 def extract_sleep_context(
     df: pd.DataFrame,
     bout_context: int,
-    causal: bool = False,
+    causal: bool,
 ) -> pd.Series:
     """Encode the local neighbourhood of each bout as a short context string."""
     sleep_string = "".join(df.sleep.values)
