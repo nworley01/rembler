@@ -76,20 +76,24 @@ python scripts/process_mpsd.py
 
 ### Package Structure
 - `src/rembler/` - Main package
-  - `dataio/` - Data loading and preprocessing
+  - `data/` - Data loading and preprocessing
     - `datasets.py` - PyTorch Dataset classes (SleepStageDataset, CustomDataset)
-    - `edf_reader.py` - EDF file reading utilities
+    - `dataset_utils.py` - Dataset processing helpers
+    - `sleep_utils.py` - Sleep stage mapping and utilities
+    - `labels.py` - Label handling utilities
+    - `io_utils.py` - I/O utilities for data loading
   - `models/` - Neural network architectures
     - `basic_cnn.py` - SmallCNN model
     - `cnn_bilstm.py` - CNN + BiLSTM model
     - `implicit_cnn.py` - Implicit frequency CNN
     - `basic_dense.py` - Simple dense model
-  - `utils/` - Utility modules
-    - `sleep_utils.py` - Sleep stage mapping and utilities
-    - `dataset_utils.py` - Dataset processing helpers (CustomDataset)
+  - `configs/` - Configuration modules
+    - `configs.py` - Configuration classes
+    - `config_utils.py` - Configuration handling utilities
+  - `training/` - Training utilities
+    - `cv.py` - Cross-validation utilities
     - `hardware_utils.py` - Device resolution
-    - `config_utils.py` - Configuration handling
-  - `analysis/metrics/` - Custom evaluation metrics
+  - `evaluation/metrics/` - Custom evaluation metrics
     - `custom_metrics.py` - PerClassMetric for sleep stage evaluation
 
 ### Data Flow
