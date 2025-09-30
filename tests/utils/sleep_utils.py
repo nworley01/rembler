@@ -46,7 +46,6 @@ RECOMMENDATIONS & CODE QUALITY NOTES
    - Consider exposing EDF sampling rate and bin length as parameters to enable more flexible tests.
 """
 
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -60,10 +59,10 @@ from rembler.utils import sleep_utils
 # sys.path.insert(0, os.path.abspath("src"))
 
 
-
 # ---------------------------
 # Helpers & Test Doubles
 # ---------------------------
+
 
 class FakeRaw:
     """
@@ -73,6 +72,7 @@ class FakeRaw:
       - __getitem__[channel_name] -> returns (np.ndarray[[values]], times)
       - .get_data(picks=[...]) -> returns multi-channel signals
     """
+
     def __init__(self, sfreq=500.0, n_times=200000, channels=None, channel_data=None):
         self.info = {"sfreq": sfreq}
         self.n_times = n_times
@@ -107,6 +107,7 @@ class FakeRaw:
 
 class MNEIoModule:
     """Fake mne.io module with read_raw_edf monkeypoint"""
+
     def __init__(self):
         self._fake_raw = None
 
@@ -118,6 +119,7 @@ class MNEIoModule:
 
 class FakeMNE:
     """Fake top-level mne module with `io` attribute"""
+
     def __init__(self, io_module):
         self.io = io_module
 
@@ -125,6 +127,7 @@ class FakeMNE:
 # ---------------------------
 # Unit Tests
 # ---------------------------
+
 
 def test_decode_sleep_signal_basic_thresholds():
     # values around bins [1.5, 2.5, 3.5]
@@ -158,7 +161,9 @@ def test_extract_sleep_stages_with_fake_raw_integer_steps():
     sleep_signal[1500] = 2.6  # maps to 2
 
     io_mod = MNEIoModule()
-    raw = FakeRaw(sfreq=sfreq, n_times=n_times, channel_data={"Signal-Sleep": sleep_signal})
+    raw = FakeRaw(
+        sfreq=sfreq, n_times=n_times, channel_data={"Signal-Sleep": sleep_signal}
+    )
     io_mod._fake_raw = raw
     fake_mne = FakeMNE(io_mod)
 
@@ -166,7 +171,9 @@ def test_extract_sleep_stages_with_fake_raw_integer_steps():
     original_mne = sleep_utils.mne
     try:
         sleep_utils.mne = fake_mne  # only used via mne in process_edf; extract_sleep_stages uses raw directly
-        stages = sleep_utils.extract_sleep_stages(raw_edf=raw, bin_length_in_seconds=10, signal_name="Signal-Sleep")
+        stages = sleep_utils.extract_sleep_stages(
+            raw_edf=raw, bin_length_in_seconds=10, signal_name="Signal-Sleep"
+        )
         # Expect 2 bins: first center -> 1, second center -> 2
         assert np.array_equal(stages, np.array([1, 2]))
     finally:
@@ -175,7 +182,9 @@ def test_extract_sleep_stages_with_fake_raw_integer_steps():
 
 def test_create_sleep_stage_dataframe_builds_expected_columns(monkeypatch):
     # Force extract_sleep_stages to return known integers [0,1,2,3,1]
-    monkeypatch.setattr(sleep_utils, "extract_sleep_stages", lambda _: np.array([0, 1, 2, 3, 1]))
+    monkeypatch.setattr(
+        sleep_utils, "extract_sleep_stages", lambda _: np.array([0, 1, 2, 3, 1])
+    )
     df = sleep_utils.create_sleep_stage_dataframe(edf_data="ignored")
     # Labels mapped
     assert list(df.sleep) == ["A", "R", "S", "X", "R"]
@@ -204,12 +213,16 @@ def test_subsample_sleep_dataframe_balances_to_R(monkeypatch):
 
 def test_determine_buffering_causal_and_noncausal():
     # Non-causal: symmetric buffers
-    lead, trail = sleep_utils.determine_buffering(bout_length=10, bout_context=5, sampling_rate=500, causal=False)
+    lead, trail = sleep_utils.determine_buffering(
+        bout_length=10, bout_context=5, sampling_rate=500, causal=False
+    )
     # (bout_context - 1) / 2 * 10 * 500 = 2 * 5000 = 10000
     assert (lead, trail) == (10000, 10000)
 
     # Causal: leading only
-    lead_c, trail_c = sleep_utils.determine_buffering(bout_length=10, bout_context=5, sampling_rate=500, causal=True)
+    lead_c, trail_c = sleep_utils.determine_buffering(
+        bout_length=10, bout_context=5, sampling_rate=500, causal=True
+    )
     # (bout_context - 1) * 10 * 500 = 4 * 5000 = 20000
     assert (lead_c, trail_c) == (20000, 0)
 
@@ -218,16 +231,24 @@ def test_determine_buffering_asserts_on_non_integer_samples():
     # Choose parameters that result in non-integer buffers
     # (bout_context - 1)/2 * bout_length * sampling_rate = 3/2 * 3 * 7 = 31.5 (non-integer)
     with pytest.raises(AssertionError):
-        sleep_utils.determine_buffering(bout_length=3, bout_context=4, sampling_rate=7, causal=False)
+        sleep_utils.determine_buffering(
+            bout_length=3, bout_context=4, sampling_rate=7, causal=False
+        )
 
 
 def test_get_bout_signal_slices_correctly():
-    full_signals = np.arange(2 * 100, dtype=int).reshape(2, 100)  # 2 channels, 100 samples
+    full_signals = np.arange(2 * 100, dtype=int).reshape(
+        2, 100
+    )  # 2 channels, 100 samples
+
     # Row-like object
     class Row:
         start = 10
         stop = 20
-    out = sleep_utils.get_bout_signal(full_signals, Row, leading_buffer=2, trailing_buffer=3)
+
+    out = sleep_utils.get_bout_signal(
+        full_signals, Row, leading_buffer=2, trailing_buffer=3
+    )
     # Expect slice [start-2 : stop+3] => [8:23) => length 15
     assert out.shape == (2, 15)
     assert np.array_equal(out[0], np.arange(8, 23))
@@ -244,11 +265,13 @@ def test_process_edf_happy_path_with_mocks(monkeypatch):
     """
     # Create a deterministic DataFrame representing sleep bouts BEFORE subsampling
     # Bouts: 0..4 with labels -> ["A", "R", "S", "X", "R"]
-    pre_df = pd.DataFrame({
-        "sleep": ["A", "R", "S", "X", "R"],
-        "start": [0, 5000, 10000, 15000, 20000],
-        "stop":  [5000, 10000, 15000, 20000, 25000],
-    })
+    pre_df = pd.DataFrame(
+        {
+            "sleep": ["A", "R", "S", "X", "R"],
+            "start": [0, 5000, 10000, 15000, 20000],
+            "stop": [5000, 10000, 15000, 20000, 25000],
+        }
+    )
 
     # After subsampling (match R count = 2) and excluding "X", we expect 2 of each: A, R, S (6 rows total).
     # Control subsampling by returning a fixed DataFrame, to avoid randomness affecting signal slicing checks.
@@ -259,7 +282,9 @@ def test_process_edf_happy_path_with_mocks(monkeypatch):
     # Monkeypatch create_sleep_stage_dataframe -> return pre_df
     monkeypatch.setattr(sleep_utils, "create_sleep_stage_dataframe", lambda _: pre_df)
     # Monkeypatch subsample_sleep_dataframe -> return controlled subsampled_df
-    monkeypatch.setattr(sleep_utils, "subsample_sleep_dataframe", lambda df: subsampled_df)
+    monkeypatch.setattr(
+        sleep_utils, "subsample_sleep_dataframe", lambda df: subsampled_df
+    )
 
     # Fake MNE raw with EEG/EMG channels
     sfreq = 500.0
@@ -276,7 +301,13 @@ def test_process_edf_happy_path_with_mocks(monkeypatch):
     original_mne = sleep_utils.mne
     try:
         sleep_utils.mne = fake_mne
-        out = sleep_utils.process_edf("fake.edf", signals=["EEG", "EMG"], bout_length=10, bout_context=5, causal=False)
+        out = sleep_utils.process_edf(
+            "fake.edf",
+            signals=["EEG", "EMG"],
+            bout_length=10,
+            bout_context=5,
+            causal=False,
+        )
         # Should have 6 rows (A, R, S each twice) and a 'signal' column with 2x (channels) by (window) arrays
         assert "signal" in out.columns
         assert len(out) == 6
@@ -313,8 +344,14 @@ def test_process_edf_respects_signals_param(monkeypatch):
     try:
         sleep_utils.mne = fake_mne
         # Call with signals=["EEG"] but implementation hardcodes ["EEG","EMG"] so get_data will raise KeyError
-        with pytest.raises(Exception):
-            sleep_utils.process_edf("fake.edf", signals=["EEG"], bout_length=10, bout_context=5, causal=False)
+        with pytest.raises(KeyError):
+            sleep_utils.process_edf(
+                "fake.edf",
+                signals=["EEG"],
+                bout_length=10,
+                bout_context=5,
+                causal=False,
+            )
     finally:
         sleep_utils.mne = original_mne
 
@@ -324,11 +361,13 @@ def test_subsample_sleep_dataframe_missing_R_is_unhandled():
     CRITICAL: subsample_sleep_dataframe assumes presence of 'R' class and will raise KeyError otherwise.
     This test intentionally fails to highlight the need for graceful handling.
     """
-    df = pd.DataFrame({
-        "sleep": ["A", "A", "S", "S", "X"],
-        "start": [0, 5000, 10000, 15000, 20000],
-        "stop":  [5000, 10000, 15000, 20000, 25000],
-    })
+    df = pd.DataFrame(
+        {
+            "sleep": ["A", "A", "S", "S", "X"],
+            "start": [0, 5000, 10000, 15000, 20000],
+            "stop": [5000, 10000, 15000, 20000, 25000],
+        }
+    )
     with pytest.raises(KeyError):
         sleep_utils.subsample_sleep_dataframe(df)
 

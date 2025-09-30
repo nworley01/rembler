@@ -36,7 +36,7 @@ class CustomDataset(Dataset):
         self,
         training_dataframe: pd.DataFrame,
         hdf5_path: str,
-        signal_names: list[str] = ["eeg", "emg"],
+        signal_names: list[str] = None,
     ):
         self.df = training_dataframe
         self.hdf5_path = hdf5_path

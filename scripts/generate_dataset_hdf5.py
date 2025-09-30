@@ -41,7 +41,7 @@ def generate_training_file(config: Config):
     ].drop_duplicates(subset=["subject", "session"])
 
     with h5py.File(path, "a") as f:
-        for idx, row in file_components.iterrows():
+        for _idx, row in file_components.iterrows():
             if row["session"] == "Baseline":
                 edf_filename = os.path.join(
                     RAW_EDF_DIR, f"{row['subject']} {row['session']}.edf"
@@ -66,7 +66,7 @@ def generate_training_file(config: Config):
                 config.causal,
             )
             # loop over each row in the subset dataframe
-            for idx, row in df_sub.iterrows():
+            for _idx, row in df_sub.iterrows():
                 # extract the relevant signal segments
                 bout_signals = su.get_bout_signal(
                     signals, row, leading_buffer, trailing_buffer

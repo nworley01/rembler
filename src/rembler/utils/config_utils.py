@@ -4,6 +4,7 @@ from omegaconf import OmegaConf
 
 BASE_DIR = "/path/to/your/base/dir"  # Update this path as needed
 
+
 def load_config_from_hydra_dump(experiment_name, base_dir=BASE_DIR):
     """
     Load a configuration from a Hydra dump file.
@@ -21,7 +22,8 @@ def load_config_from_hydra_dump(experiment_name, base_dir=BASE_DIR):
         config = yaml.safe_load(file)
     return config
 
-def load_config_with_compose_api(config_path="config", overrides=[]):
+
+def load_config_with_compose_api(config_path="config", overrides=None):
     """
     Load a configuration file using the Hydra Compose API.
 
@@ -35,6 +37,7 @@ def load_config_with_compose_api(config_path="config", overrides=[]):
     with initialize(version_base=None, config_path=config_path, job_name="test_app"):
         cfg = compose(config_name="config", overrides=overrides)
         return yaml.safe_load(OmegaConf.to_yaml(cfg))
+
 
 def unpack_config(config):
     """

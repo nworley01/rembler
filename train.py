@@ -130,7 +130,7 @@ def evaluate(
     total = 0
     per_class_metric = PerClassMetric(num_classes=dataloader.dataset.num_classes)
     with torch.no_grad():
-        for step, batch in enumerate(dataloader):
+        for _step, batch in enumerate(dataloader):
             signals = batch["data"].to(device)
             labels = batch["label"].to(device)
             logits = model(signals)

@@ -24,7 +24,7 @@ def kfold_split(
     df: pd.DataFrame,
     n_splits: int = 5,
     shuffle: bool = True,
-    random_state: int | None = None
+    random_state: int | None = None,
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform k-fold cross-validation split on a DataFrame.
@@ -51,7 +51,7 @@ def stratified_kfold_split(
     target_col: str,
     n_splits: int = 5,
     shuffle: bool = True,
-    random_state: int | None = None
+    random_state: int | None = None,
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform stratified k-fold cross-validation split on a DataFrame.
@@ -79,7 +79,7 @@ def time_series_split(
     n_splits: int = 5,
     max_train_size: int | None = None,
     test_size: int | None = None,
-    gap: int = 0
+    gap: int = 0,
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform time series cross-validation split on a DataFrame.
@@ -95,10 +95,7 @@ def time_series_split(
         Tuple of (train_df, test_df) for each fold
     """
     tss = TimeSeriesSplit(
-        n_splits=n_splits,
-        max_train_size=max_train_size,
-        test_size=test_size,
-        gap=gap
+        n_splits=n_splits, max_train_size=max_train_size, test_size=test_size, gap=gap
     )
 
     for train_idx, test_idx in tss.split(df):
@@ -108,9 +105,7 @@ def time_series_split(
 
 
 def group_kfold_split(
-    df: pd.DataFrame,
-    group_col: str,
-    n_splits: int = 5
+    df: pd.DataFrame, group_col: str, n_splits: int = 5
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform group k-fold cross-validation split on a DataFrame.
@@ -137,7 +132,7 @@ def stratified_group_kfold_split(
     group_col: str,
     n_splits: int = 5,
     shuffle: bool = True,
-    random_state: int | None = None
+    random_state: int | None = None,
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform stratified group k-fold cross-validation split on a DataFrame.
@@ -154,9 +149,7 @@ def stratified_group_kfold_split(
         Tuple of (train_df, test_df) for each fold
     """
     sgkf = StratifiedGroupKFold(
-        n_splits=n_splits,
-        shuffle=shuffle,
-        random_state=random_state
+        n_splits=n_splits, shuffle=shuffle, random_state=random_state
     )
 
     for train_idx, test_idx in sgkf.split(df, df[target_col], df[group_col]):
@@ -170,10 +163,10 @@ def cross_validate_model(
     model: Any,
     feature_cols: list[str],
     target_col: str,
-    cv_method: str = 'kfold',
+    cv_method: str = "kfold",
     n_splits: int = 5,
-    scoring: str | list[str] | dict[str, Callable] = 'accuracy',
-    **cv_kwargs
+    scoring: str | list[str] | dict[str, Callable] = "accuracy",
+    **cv_kwargs,
 ) -> dict[str, list[float]]:
     """
     Perform cross-validation on a model using specified CV method.
@@ -193,11 +186,11 @@ def cross_validate_model(
     """
     # Select CV method
     cv_methods = {
-        'kfold': kfold_split,
-        'stratified': stratified_kfold_split,
-        'timeseries': time_series_split,
-        'group': group_kfold_split,
-        'stratified_group': stratified_group_kfold_split
+        "kfold": kfold_split,
+        "stratified": stratified_kfold_split,
+        "timeseries": time_series_split,
+        "group": group_kfold_split,
+        "stratified_group": stratified_group_kfold_split,
     }
 
     if cv_method not in cv_methods:
@@ -213,7 +206,9 @@ def cross_validate_model(
     elif isinstance(scoring, dict):
         scoring_funcs = scoring
     else:
-        raise ValueError("scoring must be string, list of strings, or dict of callables")
+        raise ValueError(
+            "scoring must be string, list of strings, or dict of callables"
+        )
 
     # Initialize results
     results = {metric: [] for metric in scoring_funcs.keys()}
@@ -221,7 +216,7 @@ def cross_validate_model(
     # Perform cross-validation
     cv_splits = cv_func(df, n_splits=n_splits, **cv_kwargs)
 
-    for fold, (train_df, test_df) in enumerate(cv_splits):
+    for _fold, (train_df, test_df) in enumerate(cv_splits):
         X_train = train_df[feature_cols]
         y_train = train_df[target_col]
         X_test = test_df[feature_cols]
@@ -253,11 +248,11 @@ def evaluate_cv_results(results: dict[str, list[float]]) -> pd.DataFrame:
 
     for metric, scores in results.items():
         summary_data[metric] = {
-            'mean': np.mean(scores),
-            'std': np.std(scores),
-            'min': np.min(scores),
-            'max': np.max(scores),
-            'scores': scores
+            "mean": np.mean(scores),
+            "std": np.std(scores),
+            "min": np.min(scores),
+            "max": np.max(scores),
+            "scores": scores,
         }
 
     summary_df = pd.DataFrame(summary_data).T
@@ -270,12 +265,12 @@ def nested_cross_validation(
     param_grid: dict[str, list[Any]],
     feature_cols: list[str],
     target_col: str,
-    outer_cv: str = 'kfold',
-    inner_cv: str = 'kfold',
+    outer_cv: str = "kfold",
+    inner_cv: str = "kfold",
     outer_splits: int = 5,
     inner_splits: int = 3,
-    scoring: str = 'accuracy',
-    **cv_kwargs
+    scoring: str = "accuracy",
+    **cv_kwargs,
 ) -> dict[str, Any]:
     """
     Perform nested cross-validation for model selection and evaluation.
@@ -300,12 +295,14 @@ def nested_cross_validation(
 
     # Get CV methods
     cv_methods = {
-        'kfold': lambda: KFold(n_splits=outer_splits, shuffle=True, random_state=42),
-        'stratified': lambda: StratifiedKFold(n_splits=outer_splits, shuffle=True, random_state=42)
+        "kfold": lambda: KFold(n_splits=outer_splits, shuffle=True, random_state=42),
+        "stratified": lambda: StratifiedKFold(
+            n_splits=outer_splits, shuffle=True, random_state=42
+        ),
     }
 
-    outer_cv_obj = cv_methods.get(outer_cv, cv_methods['kfold'])()
-    inner_cv_obj = cv_methods.get(inner_cv, cv_methods['kfold'])()
+    outer_cv_obj = cv_methods.get(outer_cv, cv_methods["kfold"])()
+    inner_cv_obj = cv_methods.get(inner_cv, cv_methods["kfold"])()
 
     outer_scores = []
     best_params_per_fold = []
@@ -313,17 +310,13 @@ def nested_cross_validation(
     X = df[feature_cols]
     y = df[target_col]
 
-    for fold, (train_idx, test_idx) in enumerate(outer_cv_obj.split(X, y)):
+    for _fold, (train_idx, test_idx) in enumerate(outer_cv_obj.split(X, y)):
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
         # Inner CV for hyperparameter tuning
         grid_search = GridSearchCV(
-            model_class(),
-            param_grid,
-            cv=inner_cv_obj,
-            scoring=scoring,
-            n_jobs=-1
+            model_class(), param_grid, cv=inner_cv_obj, scoring=scoring, n_jobs=-1
         )
 
         grid_search.fit(X_train, y_train)
@@ -336,21 +329,25 @@ def nested_cross_validation(
         best_params_per_fold.append(grid_search.best_params_)
 
     return {
-        'outer_scores': outer_scores,
-        'mean_score': np.mean(outer_scores),
-        'std_score': np.std(outer_scores),
-        'best_params_per_fold': best_params_per_fold,
-        'scoring_metric': scoring
+        "outer_scores": outer_scores,
+        "mean_score": np.mean(outer_scores),
+        "std_score": np.std(outer_scores),
+        "best_params_per_fold": best_params_per_fold,
+        "scoring_metric": scoring,
     }
 
 
 def _get_scoring_func(metric_name: str) -> Callable:
     """Get scoring function by name."""
     scoring_functions = {
-        'accuracy': accuracy_score,
-        'precision': lambda y_true, y_pred: precision_score(y_true, y_pred, average='weighted'),
-        'recall': lambda y_true, y_pred: recall_score(y_true, y_pred, average='weighted'),
-        'f1': lambda y_true, y_pred: f1_score(y_true, y_pred, average='weighted')
+        "accuracy": accuracy_score,
+        "precision": lambda y_true, y_pred: precision_score(
+            y_true, y_pred, average="weighted"
+        ),
+        "recall": lambda y_true, y_pred: recall_score(
+            y_true, y_pred, average="weighted"
+        ),
+        "f1": lambda y_true, y_pred: f1_score(y_true, y_pred, average="weighted"),
     }
 
     if metric_name not in scoring_functions:
@@ -363,8 +360,10 @@ def train_test_split_temporal(
     df: pd.DataFrame,
     time_col: str,
     test_size: float = 0.2,
-    validation_size: float | None = None
-) -> tuple[pd.DataFrame, pd.DataFrame] | tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    validation_size: float | None = None,
+) -> (
+    tuple[pd.DataFrame, pd.DataFrame] | tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
+):
     """
     Split DataFrame temporally based on time column.
 
@@ -405,7 +404,7 @@ def rolling_window_validation(
     df: pd.DataFrame,
     window_size: int,
     step_size: int = 1,
-    min_train_size: int | None = None
+    min_train_size: int | None = None,
 ) -> Generator[tuple[pd.DataFrame, pd.DataFrame], None, None]:
     """
     Perform rolling window validation on time series data.

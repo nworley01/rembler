@@ -14,7 +14,6 @@ from pathlib import Path
 import mne
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 int_to_stage = {
     0: "A",
@@ -76,7 +75,7 @@ def verify_edf(
 
 def extract_sleep_stages_from_edf(
     edf_path: str,
-    signals: list[str] = ["EEG", "EMG"],
+    signals: list[str],
     bout_length: int = 10,
     bout_context: int = 5,
     causal: bool = False,
@@ -121,42 +120,6 @@ def save_sleep_stages_datatable(df: pd.DataFrame, filename: str, out_dir: str) -
     file_path = os.path.join(out_dir, filename)
     df.to_csv(file_path, index=False)
     return file_path
-
-
-def subsample_datatable(file_path: str | Path, new_name: str):
-    """Legacy helper retained for backwards compatibility.
-
-    Notes
-    -----
-    The signature is misleading (``new_name`` is unused) and the function
-    references several free variables (``signals``, ``bout_length`` and others)
-    that must exist in the caller's scope.  Prefer building bespoke sampling
-    pipelines in new code.
-    """
-    sleep_stages = pd.read_csv(file_path)
-    sleep_stages_subsample = subsample_sleep_dataframe(sleep_stages)
-    train_df, test_df = train_test_split(
-        sleep_stages_subsample,
-        stratify=sleep_stages_subsample.sleep,
-        train_size=256,
-        random_state=0,
-    )
-    leading_buffer, trailing_buffer = determine_buffering(
-        bout_length, bout_context, 500, causal
-    )
-    for df in [train_df, test_df]:
-        df.reset_index(drop=True, inplace=True)
-        df["signal"] = df.apply(
-            lambda row: get_bout_signal(
-                signals,
-                row,
-                leading_buffer=leading_buffer,
-                trailing_buffer=trailing_buffer,
-            ),
-            axis=1,
-        )
-
-    return train_df, test_df
 
 
 def create_sleep_stage_dataframe(edf_data: str) -> pd.DataFrame:
