@@ -68,7 +68,7 @@ class CustomDataset(Dataset):
         row = self.df.iloc[idx]
 
         data_np = np.vstack(
-            [self.hf[f"{row.bout_id}/{signal}"][:] for signal in self.signal_names]
+            [self.hf[f"{row.bout_id}/{signal}"][:] for signal in self.signal_names]  # type: ignore  #  self.hf won't be None here
         )
         # Convert to PyTorch tensor if needed and apply any transformations
         data = torch.from_numpy(data_np).float()  # Example: assuming float data

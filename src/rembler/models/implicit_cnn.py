@@ -60,12 +60,12 @@ class ImplicitFilterGenerator(nn.Module):
 class ImplicitFrequencyCNN(nn.Module):
     """Applies implicit convolution via frequency-domain multiplication."""
 
-    def __init__(self, config: ImplicitCNNConfig | None = None, **kwargs) -> None:
+    def __init__(self, config: ImplicitCNNConfig | None = None, **kwargs: Any) -> None:
         super().__init__()
         if config is None:
             if "in_channels" not in kwargs or "out_channels" not in kwargs:
                 raise ValueError("Provide either config or in_channels/out_channels")
-            config = ImplicitCNNConfig(**kwargs)  # type: ignore[arg-type]
+            config = ImplicitCNNConfig(**kwargs)
         self.config = config
 
         self.filter_generator = ImplicitFilterGenerator(

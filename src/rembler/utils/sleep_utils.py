@@ -29,7 +29,7 @@ stage_to_int = {v: k for k, v in int_to_stage.items()}
 
 
 def verify_edf(
-    edf_file: str | Path,
+    edf_file: str | Path | mne.io.edf.edf.RawEDF,
     duration: int = 24,
     sfreq: int = 500,
 ) -> bool:
@@ -201,7 +201,7 @@ def extract_activity_signal(edf_data: Any, samples_per_bout: int = 5000) -> pd.S
 def extract_sleep_context(df: pd.DataFrame) -> pd.Series:
     """Encode the local neighbourhood of each bout as a short context string."""
     sleep_string = "".join(df.sleep.values)
-    return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3])
+    return df.index.map(lambda x: sleep_string[max(x - 2, 0) : x + 3]).to_series()
 
 
 def determine_buffering(

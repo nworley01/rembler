@@ -12,16 +12,18 @@ class PerClassMetric:
         self.num_classes = num_classes
         self.reset()
         self.int_to_stage = int_to_stage
+        self.correct: list[int] = [0] * self.num_classes
+        self.total: list[int] = [0] * self.num_classes
 
     def update(self, preds: torch.Tensor, targets: torch.Tensor) -> None:
-        preds = preds.cpu().numpy()
-        targets = targets.cpu().numpy()
-        assert preds.shape == targets.shape, (
+        preds_np = preds.cpu().numpy()
+        targets_np = targets.cpu().numpy()
+        assert preds_np.shape == targets_np.shape, (
             "Predictions and targets must have the same shape"
         )
         for cls in range(self.num_classes):
-            cls_mask = targets == cls
-            self.correct[cls] += (preds[cls_mask] == targets[cls_mask]).sum()
+            cls_mask = targets_np == cls
+            self.correct[cls] += (preds_np[cls_mask] == targets_np[cls_mask]).sum()
             self.total[cls] += cls_mask.sum()
 
     def compute(self) -> torch.Tensor:
