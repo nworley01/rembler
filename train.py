@@ -6,13 +6,16 @@ import json
 import logging
 from dataclasses import asdict
 
+import hydra
 import pandas as pd
 import torch
+import yaml
+from omegaconf import DictConfig, OmegaConf
 from torch import nn
 from torch.utils.data import DataLoader
 
+from rembler.configs.configs import TrainConfig
 from rembler.data import dataset_utils as du
-from rembler.interface.cli import parse_args
 from rembler.interface.logger import log_metrics
 from rembler.models.build import build_model
 from rembler.training.hardware_utils import resolve_device
@@ -24,8 +27,11 @@ from rembler.training.train_utils import (
 )
 
 
-def main() -> None:
-    config = parse_args()
+@hydra.main(version_base=None, config_path="config", config_name="config")
+def main(cfg: DictConfig) -> None:
+    config = yaml.safe_load(OmegaConf.to_yaml(cfg))
+    config = TrainConfig(**config["train_spec"])
+    # config = parse_args()
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )

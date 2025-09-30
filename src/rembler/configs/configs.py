@@ -21,6 +21,9 @@ class TrainConfig:
     checkpoint_name: str = "best.pt"
     model_type: str = "small_cnn"  # "small_cnn", "cnn_bilstm", "implicit_cnn"
 
+    def __post_init__(self) -> None:
+        self.output_dir = Path(self.output_dir)
+
     @property
     def checkpoint_path(self) -> Path:
         return self.output_dir / self.checkpoint_name
